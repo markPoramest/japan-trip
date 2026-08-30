@@ -1,0 +1,122 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Trip {
+  id           String          @id @default(cuid())
+  title        String
+  startDate    DateTime
+  endDate      DateTime
+  description  String?
+  currency     String          @default("JPY")
+  baseCurrency String          @default("THB")
+  exchangeRate Float           @default(0.24) // JPY * exchangeRate = THB approx
+  
+  days         TripDay[]
+  hotels       HotelBooking[]
+  passes       PassBooking[]
+  flights      FlightBooking[]
+  budgets      BudgetWallet[]
+  
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model TripDay {
+  id          String        @id @default(cuid())
+  tripId      String
+  trip        Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  dayNumber   Int
+  date        DateTime
+  dayOfWeek   String
+  slug        String        // e.g. "day-1-hirosaki"
+  title       String        // e.g. "Hirosaki"
+  notes       String?
+  
+  activities  DayActivity[]
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model DayActivity {
+  id          String    @id @default(cuid())
+  dayId       String
+  day         TripDay   @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  time        String    // e.g. "06:00", "09:30"
+  location    String    // e.g. "Hirosaki Castle"
+  activity    String    // e.g. "Apple picking & Mt. Iwaki view"
+  cost        Float     @default(0) // Cost in JPY
+  isIcCard    Boolean   @default(false)
+  usingPass   String?   // e.g. "JR East-South Hokkaido Rail Pass"
+  remark      String?   // e.g. links or timetable notes
+  sortOrder   Int       @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model HotelBooking {
+  id          String    @id @default(cuid())
+  tripId      String
+  trip        Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  name        String    // e.g. "Rembrandt Inn Aomori"
+  dateRange   String    // e.g. "21-23 Oct"
+  checkIn     DateTime?
+  checkOut    DateTime?
+  costJpy     Float?
+  costThb     Float?
+  bookingRef  String?
+  notes       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model PassBooking {
+  id          String    @id @default(cuid())
+  tripId      String
+  trip        Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  name        String    // e.g. "JR East-South Hokkaido Rail Pass"
+  costJpy     Float?
+  costThb     Float?
+  validDays   Int?
+  notes       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model FlightBooking {
+  id          String    @id @default(cuid())
+  tripId      String
+  trip        Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  flightNo    String    // e.g. "NH850"
+  route       String    // e.g. "BKK -> HND"
+  departure   DateTime?
+  arrival     DateTime?
+  costJpy     Float?
+  costThb     Float?
+  notes       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model BudgetWallet {
+  id          String    @id @default(cuid())
+  tripId      String
+  trip        Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  category    String    // e.g. "IC Card", "Cash / Pocket Money", "Travel Card (Wise)"
+  amountJpy   Float     @default(0)
+  amountThb   Float     @default(0)
+  notes       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
