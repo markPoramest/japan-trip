@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createTrip, createTripDay, createPass } from "@/lib/actions";
-import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Sparkles, AlertCircle, RefreshCw, JapaneseYen } from "lucide-react";
 import Link from "next/link";
 import SettingsKebab from "@/components/SettingsKebab";
 import DateRangePicker from "@/components/DateRangePicker";
@@ -306,20 +306,53 @@ export default function NewTripPage() {
             </div>
           </div>
 
-          {/* Currency & Budget */}
+          {/* Fixed Currency & Exchange Rate */}
           <div className="bg-bg-card border border-border rounded-3xl p-6 shadow-card space-y-5">
-            <h2 className="text-base font-bold text-text-primary">{t("currencySettings")}</h2>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className={labelClass}>{t("tripCurrency")}</label>
-                <input type="text" value={currency} onChange={(e) => setCurrency(e.target.value)} className={inputClass} />
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
+                <JapaneseYen className="w-4 h-4 text-sand" /> {t("currencySettings")}
+              </h2>
+              <span className="text-[11px] font-semibold text-text-muted bg-bg-surface px-2.5 py-0.5 rounded-full border border-border/60">
+                Fixed JPY (¥) ⇄ THB (฿)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Fixed Trip Currency (JPY) */}
+              <div className="p-3.5 bg-bg-surface rounded-2xl border border-border/80 space-y-1">
+                <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                  {t("tripCurrency")}
+                </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🇯🇵</span>
+                    <span className="font-extrabold text-sm text-text-primary">JPY (¥)</span>
+                  </div>
+                  <span className="text-[10px] text-text-faint font-semibold bg-bg-base px-2 py-0.5 rounded-md border border-border/60">
+                    Japan
+                  </span>
+                </div>
               </div>
-              <div>
-                <label className={labelClass}>{t("baseCurrency")}</label>
-                <input type="text" value={baseCurrency} onChange={(e) => setBaseCurrency(e.target.value)} className={inputClass} />
+
+              {/* Fixed Base Currency (THB) */}
+              <div className="p-3.5 bg-bg-surface rounded-2xl border border-border/80 space-y-1">
+                <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                  {t("baseCurrency")}
+                </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🇹🇭</span>
+                    <span className="font-extrabold text-sm text-text-primary">THB (฿)</span>
+                  </div>
+                  <span className="text-[10px] text-text-faint font-semibold bg-bg-base px-2 py-0.5 rounded-md border border-border/60">
+                    Thai Baht
+                  </span>
+                </div>
               </div>
+
+              {/* Editable Exchange Rate */}
               <div>
-                <label className={labelClass}>{t("exchangeRate")}</label>
+                <label className={labelClass}>{t("exchangeRate")} (1 JPY ➔ THB)</label>
                 <input
                   type="number"
                   step="0.001"
@@ -328,7 +361,9 @@ export default function NewTripPage() {
                   placeholder="0.24"
                   className={inputClass}
                 />
-                <p className="text-[10px] text-text-faint mt-1">{t("exchangeRateHint")}</p>
+                <p className="text-[10px] text-text-muted mt-1 font-mono">
+                  10,000 JPY ≈ {Math.round(10000 * (parseFloat(exchangeRate) || 0.24)).toLocaleString()} THB
+                </p>
               </div>
             </div>
           </div>

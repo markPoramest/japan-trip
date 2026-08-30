@@ -133,11 +133,19 @@ export default function EditTripModal({ isOpen, onClose, trip }: EditTripModalPr
             />
           </div>
 
-          {/* Exchange rate */}
-          <div className="p-3.5 bg-bg-surface border border-border rounded-2xl">
-            <label className={labelClass}>
-              <JapaneseYen className="w-3.5 h-3.5 text-sand" /> {t("exchangeRate")} (JPY ➔ THB)
-            </label>
+          {/* Fixed Currency & Exchange rate */}
+          <div className="p-4 bg-bg-surface border border-border rounded-2xl space-y-3">
+            <div className="flex items-center justify-between">
+              <label className={labelClass}>
+                <JapaneseYen className="w-3.5 h-3.5 text-sand" /> {t("exchangeRate")} (1 JPY ➔ THB)
+              </label>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-text-muted bg-bg-base px-2 py-0.5 rounded-md border border-border/60">
+                <span>🇯🇵 JPY</span>
+                <span>⇄</span>
+                <span>🇹🇭 THB</span>
+              </div>
+            </div>
+
             <input
               type="number"
               step="0.001"
@@ -146,7 +154,9 @@ export default function EditTripModal({ isOpen, onClose, trip }: EditTripModalPr
               placeholder="0.24"
               className={inputClass}
             />
-            <p className="text-[10px] text-text-faint mt-1.5">{t("exchangeRateHint")}</p>
+            <p className="text-[11px] text-text-muted font-mono">
+              10,000 JPY ≈ {Math.round(10000 * (parseFloat(exchangeRate) || 0.24)).toLocaleString()} THB
+            </p>
           </div>
 
           {/* Actions */}
