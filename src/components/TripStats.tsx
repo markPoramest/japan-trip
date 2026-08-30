@@ -1,7 +1,7 @@
 "use client";
 
 import { formatJPY, formatTHB } from "@/lib/utils";
-import { Wallet, Plane, Hotel, CircleDollarSign, Train } from "lucide-react";
+import { Wallet, Plane, Hotel, CircleDollarSign, Train, Ticket } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface TripStatsProps {
@@ -53,12 +53,12 @@ export default function TripStats({
       iconBg: "bg-sand-subtle border-sand-muted text-sand",
       highlight: false,
     },
-    // 3. Rail Passes
+    // 3. Passes, Rentals & Tickets
     {
       label: t("railPasses"),
       value: formatJPY(totalPassJpy),
       sub: `≈ ${formatTHB(totalPassJpy * rate)}`,
-      icon: Train,
+      icon: Ticket,
       iconBg: "bg-olive-subtle border-olive-muted text-olive",
       highlight: false,
     },

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { createActivity, updateActivity } from "@/lib/actions";
-import { X, Clock, MapPin, AlignLeft, CreditCard, Train, Link as LinkIcon, CircleDollarSign, ArrowRightLeft, Loader2, Sparkles } from "lucide-react";
+import { X, Clock, MapPin, AlignLeft, CreditCard, Train, Ticket, Link as LinkIcon, CircleDollarSign, ArrowRightLeft, Loader2, Sparkles } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatJPY, formatTHB } from "@/lib/utils";
 
@@ -336,7 +336,7 @@ export default function ActivityFormModal({
           {/* Transit Pass Selector */}
           <div>
             <label className={labelClass}>
-              <Train className="w-3.5 h-3.5 text-olive" /> {t("railPassUsed")}
+              <Ticket className="w-3.5 h-3.5 text-olive" /> {t("railPassUsed")}
             </label>
             <select
               value={isCustomMode ? "__custom__" : selectedPass}

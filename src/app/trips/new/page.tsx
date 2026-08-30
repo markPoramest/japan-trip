@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createFullTrip } from "@/lib/actions";
-import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Sparkles, AlertCircle, RefreshCw, JapaneseYen, Loader2, PlaneTakeoff, CheckCircle2, Info } from "lucide-react";
+import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Ticket, Sparkles, AlertCircle, RefreshCw, JapaneseYen, Loader2, PlaneTakeoff, CheckCircle2, Info } from "lucide-react";
 import Link from "next/link";
 import SettingsKebab from "@/components/SettingsKebab";
 import DateRangePicker from "@/components/DateRangePicker";
@@ -402,7 +402,7 @@ export default function NewTripPage() {
           <div className="bg-bg-card border border-border rounded-3xl p-6 shadow-card space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
-                <Train className="w-4 h-4 text-olive" /> {t("railPassesSetup")}
+                <Ticket className="w-4 h-4 text-olive" /> {t("railPassesSetup")}
               </h2>
               <span className="text-xs text-text-muted">{t("optional")}</span>
             </div>

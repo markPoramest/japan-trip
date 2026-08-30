@@ -86,7 +86,7 @@ export default function PassCard({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center space-x-3">
             <div className="p-2.5 rounded-2xl bg-olive/10 text-olive border border-olive-muted">
-              <Train className="w-5 h-5" />
+              <Ticket className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createPass, updatePass } from "@/lib/actions";
-import { X, Train, Calendar, FileText, ArrowRightLeft, Loader2 } from "lucide-react";
+import { X, Train, Ticket, Calendar, FileText, ArrowRightLeft, Loader2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatJPY, formatTHB } from "@/lib/utils";
 
@@ -117,7 +117,7 @@ export default function PassModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-            <Train className="w-4 h-4 text-olive" />
+            <Ticket className="w-4 h-4 text-olive" />
             <span>{isEditing ? t("editPass") : t("addPass")}</span>
           </h3>
           <button
@@ -133,14 +133,14 @@ export default function PassModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
           <div>
             <label className={labelClass}>
-              <Train className="w-3.5 h-3.5 text-olive" /> {t("passNamePlaceholder")} *
+              <Ticket className="w-3.5 h-3.5 text-olive" /> {t("passName")} *
             </label>
             <input
               required
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. JR Tokyo Wide Pass, Osaka Amazing Pass"
+              placeholder={t("passNamePlaceholder")}
               className={inputClass}
             />
           </div>
