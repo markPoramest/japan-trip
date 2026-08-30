@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createTrip, createTripDay, createPass } from "@/lib/actions";
-import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Sparkles, AlertCircle, RefreshCw, JapaneseYen } from "lucide-react";
+import { createFullTrip } from "@/lib/actions";
+import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Sparkles, AlertCircle, RefreshCw, JapaneseYen, Loader2, PlaneTakeoff, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import SettingsKebab from "@/components/SettingsKebab";
 import DateRangePicker from "@/components/DateRangePicker";
@@ -54,6 +54,7 @@ function getDaysInRange(start: string, end: string): string[] {
 export default function NewTripPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<"init" | "saving" | "redirecting">("init");
   const { t, language } = useLanguage();
 
   const [title, setTitle] = useState("");
@@ -187,9 +188,32 @@ export default function NewTripPage() {
     }
 
     setLoading(true);
+    setLoadingStage("saving");
 
     try {
-      const trip = await createTrip({
+      // Prepare days payload
+      const validDays = days.filter((d) => d.date && d.title);
+      const daysPayload = validDays.map((d, i) => {
+        const dateObj = parseLocalDate(d.date) || new Date();
+        return {
+          dayNumber: i + 1,
+          date: d.date,
+          dayOfWeek: DOW[dateObj.getDay()],
+          slug: buildSlug(i + 1, d.title),
+          title: d.title,
+        };
+      });
+
+      // Prepare passes payload
+      const validPasses = passes.filter((p) => p.name.trim());
+      const passesPayload = validPasses.map((p) => ({
+        name: p.name.trim(),
+        costJpy: parseFloat(p.costJpy) || 0,
+        validDays: parseInt(p.validDays) || undefined,
+      }));
+
+      // Fast atomic single query
+      const trip = await createFullTrip({
         title,
         startDate,
         endDate,
@@ -197,38 +221,15 @@ export default function NewTripPage() {
         currency,
         baseCurrency,
         exchangeRate: parseFloat(exchangeRate) || 0.24,
+        days: daysPayload,
+        passes: passesPayload,
       });
 
-      // Create each day
-      const validDays = days.filter((d) => d.date && d.title);
-      for (let i = 0; i < validDays.length; i++) {
-        const d = validDays[i];
-        const dateObj = parseLocalDate(d.date) || new Date();
-        await createTripDay({
-          tripId: trip.id,
-          dayNumber: i + 1,
-          date: d.date,
-          dayOfWeek: DOW[dateObj.getDay()],
-          slug: buildSlug(i + 1, d.title),
-          title: d.title,
-        });
-      }
-
-      // Create any passes configured
-      const validPasses = passes.filter((p) => p.name.trim());
-      for (const p of validPasses) {
-        await createPass(trip.id, {
-          name: p.name.trim(),
-          costJpy: parseFloat(p.costJpy) || 0,
-          validDays: parseInt(p.validDays) || undefined,
-        });
-      }
-
+      setLoadingStage("redirecting");
       router.push(`/trips/${trip.id}`);
     } catch (err) {
       console.error(err);
       alert("Failed to create trip. Please try again.");
-    } finally {
       setLoading(false);
     }
   }
@@ -238,7 +239,85 @@ export default function NewTripPage() {
     "w-full px-3.5 py-2.5 bg-bg-base border border-border rounded-xl text-text-primary text-sm placeholder-text-faint focus:outline-none focus:border-accent transition-colors";
 
   return (
-    <div className="min-h-screen bg-bg-base pb-20">
+    <div className="min-h-screen bg-bg-base pb-20 relative">
+      {/* Full-Screen Loading & Transition Modal */}
+      {loading && (
+        <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-bg-card border-2 border-accent/40 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl space-y-6 relative overflow-hidden">
+            {/* Ambient Background Glow */}
+            <div className="absolute -top-16 -left-16 w-32 h-32 bg-accent/20 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-16 -right-16 w-32 h-32 bg-accent/20 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Icon animation */}
+            <div className="relative w-20 h-20 mx-auto">
+              <div className="absolute inset-0 rounded-full border-4 border-accent/20 border-t-accent animate-spin" />
+              <div className="w-full h-full flex items-center justify-center">
+                <img
+                  src="/logo.png"
+                  alt="Japan Trip Planner"
+                  className="w-14 h-14 object-contain animate-pulse"
+                />
+              </div>
+            </div>
+
+            {/* Title & Stage Details */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-extrabold text-text-primary">
+                {loadingStage === "redirecting"
+                  ? language === "th"
+                    ? "สร้างทริปสำเร็จ! กำลังเปิดหน้าทริป..."
+                    : "Trip Ready! Opening dashboard..."
+                  : language === "th"
+                  ? "กำลังสร้างแผนการเดินทางของคุณ..."
+                  : "Creating Your Japan Trip Plan..."}
+              </h3>
+              <p className="text-xs text-text-muted leading-relaxed">
+                {loadingStage === "redirecting"
+                  ? language === "th"
+                    ? "พร้อมออกเดินทางแล้ว ✈️"
+                    : "Ready for departure ✈️"
+                  : language === "th"
+                  ? "กำลังบันทึกตารางรายวัน พาสการเดินทาง และคำนวณงบประมาณ..."
+                  : "Saving daily schedules, transit passes and budget matrices..."}
+              </p>
+            </div>
+
+            {/* Animated Progress Bar */}
+            <div className="w-full bg-bg-surface h-2 rounded-full overflow-hidden border border-border/60">
+              <div
+                className={`h-full bg-accent-gradient transition-all duration-700 ease-out ${
+                  loadingStage === "redirecting" ? "w-full" : "w-3/4 animate-pulse"
+                }`}
+              />
+            </div>
+
+            {/* Checklist */}
+            <div className="text-[11px] text-text-muted space-y-1.5 text-left bg-bg-surface/80 p-3 rounded-2xl border border-border/60">
+              <div className="flex items-center gap-2 text-text-primary">
+                <CheckCircle2 className="w-3.5 h-3.5 text-sage" />
+                <span>{title || "Trip Title"}</span>
+              </div>
+              <div className="flex items-center gap-2 text-text-primary">
+                <CheckCircle2 className="w-3.5 h-3.5 text-sage" />
+                <span>
+                  {startDate} ➔ {endDate} ({durationDays} {t("days")})
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-text-muted">
+                {loadingStage === "redirecting" ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-sage" />
+                ) : (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />
+                )}
+                <span>
+                  {days.filter((d) => d.date && d.title).length} {t("dailySchedule")}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-border bg-bg-surface/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -527,7 +606,14 @@ export default function NewTripPage() {
               disabled={loading || !isValidRange}
               className="px-7 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-bold shadow-accent transition-all hover:scale-105 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
-              {loading ? t("creating") : t("createTrip")}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{t("creating")}</span>
+                </>
+              ) : (
+                t("createTrip")
+              )}
             </button>
           </div>
         </form>

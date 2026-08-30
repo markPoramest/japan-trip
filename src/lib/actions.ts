@@ -25,14 +25,73 @@ export async function createTrip(data: {
     data: {
       userId,
       title: data.title,
-      startDate: new Date(data.startDate),
-      endDate: new Date(data.endDate),
+      startDate: new Date(data.startDate + "T00:00:00"),
+      endDate: new Date(data.endDate + "T00:00:00"),
       description: data.description || null,
       currency: data.currency || "JPY",
       baseCurrency: data.baseCurrency || "THB",
       exchangeRate: Number(data.exchangeRate) || 0.24,
     },
   });
+  revalidatePath("/trips");
+  return trip;
+}
+
+export async function createFullTrip(data: {
+  title: string;
+  startDate: string;
+  endDate: string;
+  description?: string;
+  currency?: string;
+  baseCurrency?: string;
+  exchangeRate?: number;
+  days?: {
+    dayNumber: number;
+    date: string;
+    dayOfWeek: string;
+    slug: string;
+    title: string;
+  }[];
+  passes?: {
+    name: string;
+    costJpy?: number;
+    validDays?: number;
+    notes?: string;
+  }[];
+}) {
+  const session = await getAuthSession();
+  const userId = (session?.user as any)?.id || null;
+
+  const trip = await db.trip.create({
+    data: {
+      userId,
+      title: data.title,
+      startDate: new Date(data.startDate + "T00:00:00"),
+      endDate: new Date(data.endDate + "T00:00:00"),
+      description: data.description || null,
+      currency: data.currency || "JPY",
+      baseCurrency: data.baseCurrency || "THB",
+      exchangeRate: Number(data.exchangeRate) || 0.24,
+      days: data.days && data.days.length > 0 ? {
+        create: data.days.map((d) => ({
+          dayNumber: d.dayNumber,
+          date: new Date(d.date + "T00:00:00"),
+          dayOfWeek: d.dayOfWeek,
+          slug: d.slug,
+          title: d.title,
+        }))
+      } : undefined,
+      passes: data.passes && data.passes.length > 0 ? {
+        create: data.passes.map((p) => ({
+          name: p.name,
+          costJpy: p.costJpy || null,
+          validDays: p.validDays || null,
+          notes: p.notes || null,
+        }))
+      } : undefined,
+    },
+  });
+
   revalidatePath("/trips");
   return trip;
 }
