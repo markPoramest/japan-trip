@@ -1,51 +1,59 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+
 export default function BookingsSkeleton() {
+  const { language } = useLanguage();
+
   return (
-    <div className="space-y-8 animate-pulse">
-      {/* Title */}
-      <div className="space-y-2">
-        <div className="w-56 h-8 bg-border/70 rounded-xl" />
-        <div className="w-80 h-4 bg-border/40 rounded" />
+    <div className="space-y-8 relative">
+      {/* Floating Active Loading Indicator Pill */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-bg-card/90 border border-accent/40 shadow-2xl backdrop-blur-md text-xs font-bold text-accent animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <Loader2 className="w-4 h-4 animate-spin text-accent" />
+        <span>{language === "th" ? "กำลังโหลดการจอง & ค่าใช้จ่าย..." : "Loading Bookings & Budgets..."}</span>
       </div>
 
-      {/* Hotel Table Skeleton */}
+      {/* Page Title Skeleton */}
+      <div className="space-y-2">
+        <div className="w-56 h-8 skeleton-shimmer rounded-xl" />
+        <div className="w-80 h-4 skeleton-shimmer rounded" />
+      </div>
+
+      {/* Hotels Table Skeleton */}
       <div className="bg-bg-card border border-border rounded-3xl p-6 space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-border/60" />
-            <div className="space-y-1">
-              <div className="w-32 h-5 bg-border/70 rounded" />
-              <div className="w-48 h-3 bg-border/40 rounded" />
+            <div className="w-9 h-9 rounded-2xl skeleton-shimmer" />
+            <div className="space-y-1.5">
+              <div className="w-32 h-5 skeleton-shimmer rounded" />
+              <div className="w-48 h-3 skeleton-shimmer rounded" />
             </div>
           </div>
-          <div className="w-24 h-6 bg-border/60 rounded" />
+          <div className="w-24 h-8 skeleton-shimmer rounded-xl" />
         </div>
         <div className="space-y-3 pt-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 bg-bg-surface rounded-xl border border-border/60" />
+            <div key={i} className="h-12 skeleton-shimmer rounded-xl" />
           ))}
         </div>
       </div>
 
-      {/* Passes & Flights Grid Skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-bg-card border border-border rounded-3xl p-6 space-y-4">
+      {/* Passes Skeleton */}
+      <div className="bg-bg-card border border-border rounded-3xl p-6 space-y-5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-border/60" />
-            <div className="w-28 h-5 bg-border/70 rounded" />
+            <div className="w-9 h-9 rounded-2xl skeleton-shimmer" />
+            <div className="space-y-1.5">
+              <div className="w-28 h-5 skeleton-shimmer rounded" />
+              <div className="w-40 h-3 skeleton-shimmer rounded" />
+            </div>
           </div>
-          <div className="h-20 bg-bg-surface rounded-2xl border border-border/60" />
-          <div className="h-20 bg-bg-surface rounded-2xl border border-border/60" />
+          <div className="w-24 h-8 skeleton-shimmer rounded-xl" />
         </div>
-
-        <div className="bg-bg-card border border-border rounded-3xl p-6 space-y-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-border/60" />
-            <div className="w-24 h-5 bg-border/70 rounded" />
-          </div>
-          <div className="h-20 bg-bg-surface rounded-2xl border border-border/60" />
-          <div className="h-20 bg-bg-surface rounded-2xl border border-border/60" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div className="h-20 skeleton-shimmer rounded-2xl" />
+          <div className="h-20 skeleton-shimmer rounded-2xl" />
         </div>
       </div>
     </div>
