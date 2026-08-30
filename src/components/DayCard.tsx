@@ -119,7 +119,7 @@ export default function DayCard({ day, tripId, index = 0 }: DayCardProps) {
             </span>
             <span className="text-xs text-text-muted flex items-center">
               <Calendar className="w-3.5 h-3.5 mr-1 text-accent/70" />
-              {formattedDate} ({day.dayOfWeek})
+              {formattedDate} ({new Date(day.date).toLocaleDateString(dateLocale, { weekday: "short" })})
             </span>
           </div>
 

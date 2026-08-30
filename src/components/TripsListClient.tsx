@@ -46,7 +46,9 @@ export default function TripsListClient({ trips }: { trips: TripItem[] }) {
   const renderTripCard = (trip: TripItem, isPast: boolean, index: number = 0) => {
     const start = new Date(trip.startDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
     const end = new Date(trip.endDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
-    const durationDays = Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24));
+    const durationDays = trip.daysCount > 0
+      ? trip.daysCount
+      : Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     const totalJpy = trip.grandTotalThb / trip.exchangeRate;
     const flightJpy = trip.totalFlightThb / trip.exchangeRate;

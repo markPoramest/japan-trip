@@ -1,43 +1,53 @@
 "use client";
 
-import { useEffect } from "react";
-import Link from "next/link";
-import { Printer, ArrowLeft, Globe, Plane, Hotel, Calendar, Train, MapPin } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { Plane, Hotel, Train, Calendar, MapPin, Printer, ArrowLeft, Globe } from "lucide-react";
+import Link from "next/link";
 
-interface ExportTripData {
+interface Activity {
   id: string;
-  title: string;
-  description: string | null;
-  startDate: string;
-  endDate: string;
-  flights: { id: string; flightNo: string; route: string; notes: string | null }[];
-  hotels: { id: string; name: string; dateRange: string; notes: string | null }[];
-  passes: { id: string; name: string; validDays: number | null; notes: string | null }[];
-  days: {
-    id: string;
-    dayNumber: number;
-    date: string;
-    dayOfWeek: string;
-    title: string;
-    activities: {
-      id: string;
-      time: string;
-      location: string;
-      activity: string;
-      usingPass: string | null;
-      remark: string | null;
-    }[];
-  }[];
+  time: string;
+  location: string;
+  activity: string;
+  cost?: number;
+  isIcCard?: boolean;
+  usingPass?: string | null;
+  remark?: string | null;
+  sortOrder?: number;
 }
 
-export default function ExportItineraryView({ trip }: { trip: ExportTripData }) {
+interface TripDay {
+  id: string;
+  dayNumber: number;
+  date: Date | string;
+  dayOfWeek: string;
+  title: string;
+  activities: Activity[];
+}
+
+interface ExportItineraryProps {
+  trip: {
+    id: string;
+    title: string;
+    description: string | null;
+    startDate: Date | string;
+    endDate: Date | string;
+    flights: { id: string; flightNo: string; route: string; notes?: string | null }[];
+    hotels: { id: string; name: string; dateRange: string; notes?: string | null }[];
+    passes: { id: string; name: string; validDays?: number | null }[];
+    days: TripDay[];
+  };
+}
+
+export default function ExportItineraryView({ trip }: ExportItineraryProps) {
   const { t, language, setLanguage } = useLanguage();
 
   const dateLocale = language === "th" ? "th-TH" : "en-GB";
   const startStr = new Date(trip.startDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
   const endStr = new Date(trip.endDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
-  const durationDays = Math.ceil((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24));
+  const durationDays = trip.days && trip.days.length > 0
+    ? trip.days.length
+    : Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   const handlePrint = () => {
     window.print();
@@ -58,14 +68,16 @@ export default function ExportItineraryView({ trip }: { trip: ExportTripData }) 
             <span>{t("backToTrip")}</span>
           </Link>
 
-          <div className="flex items-center gap-2.5">
-            {/* Language switch button for Immigration English vs Personal Thai */}
-            <div className="flex items-center bg-bg-surface p-1 rounded-xl border border-border text-xs font-bold">
+          <div className="flex items-center gap-3">
+            {/* Quick Language Toggle */}
+            <div className="flex items-center bg-bg-surface border border-border rounded-xl p-0.5 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setLanguage("en")}
                 className={`px-2.5 py-1 rounded-lg transition-all ${
-                  language === "en" ? "bg-accent text-white shadow-sm" : "text-text-muted hover:text-text-primary"
+                  language === "en"
+                    ? "bg-accent text-white font-bold shadow-sm"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
               >
                 EN
@@ -74,14 +86,16 @@ export default function ExportItineraryView({ trip }: { trip: ExportTripData }) 
                 type="button"
                 onClick={() => setLanguage("th")}
                 className={`px-2.5 py-1 rounded-lg transition-all ${
-                  language === "th" ? "bg-accent text-white shadow-sm" : "text-text-muted hover:text-text-primary"
+                  language === "th"
+                    ? "bg-accent text-white font-bold shadow-sm"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
               >
                 TH
               </button>
             </div>
 
-            {/* Print / Save PDF button */}
+            {/* Print Button */}
             <button
               type="button"
               onClick={handlePrint}
@@ -119,7 +133,7 @@ export default function ExportItineraryView({ trip }: { trip: ExportTripData }) 
                 {startStr} – {endStr}
               </div>
               <div className="text-[11px] text-gray-500 font-medium">
-                {durationDays} Days / {trip.days.length} Itinerary Days
+                {durationDays} {language === "th" ? "วัน" : durationDays === 1 ? "Day" : "Days"}
               </div>
             </div>
           </div>
@@ -176,7 +190,7 @@ export default function ExportItineraryView({ trip }: { trip: ExportTripData }) 
               </span>
               {trip.passes.map((p) => (
                 <span key={p.id} className="px-2 py-0.5 rounded bg-gray-200/80 font-medium text-gray-800">
-                  {p.name} {p.validDays ? `(${p.validDays} Days)` : ""}
+                  {p.name} {p.validDays ? `(${p.validDays} ${language === "th" ? "วัน" : p.validDays === 1 ? "Day" : "Days"})` : ""}
                 </span>
               ))}
             </div>
@@ -196,6 +210,7 @@ export default function ExportItineraryView({ trip }: { trip: ExportTripData }) 
                   month: "short",
                   year: "numeric",
                 });
+                const dayOfWeekLocalized = new Date(day.date).toLocaleDateString(dateLocale, { weekday: "short" });
 
                 return (
                   <div
@@ -205,20 +220,20 @@ export default function ExportItineraryView({ trip }: { trip: ExportTripData }) 
                     {/* Day Banner */}
                     <div className="bg-gray-100 px-3.5 py-1.5 border-b border-gray-300 flex items-center justify-between font-bold text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="bg-black text-white px-2 py-0.5 rounded font-black text-[10px]">
-                          DAY {day.dayNumber}
+                        <span className="bg-black text-white px-2 py-0.5 rounded font-black text-[10px] uppercase">
+                          {t("day")} {day.dayNumber}
                         </span>
                         <span className="text-gray-900">{day.title}</span>
                       </div>
                       <span className="text-gray-600 font-medium text-[11px]">
-                        {dayDate} ({day.dayOfWeek})
+                        {dayDate} ({dayOfWeekLocalized})
                       </span>
                     </div>
 
                     {/* Activities Table */}
                     {day.activities.length === 0 ? (
                       <div className="p-3 text-gray-400 text-center italic text-[11px]">
-                        No scheduled activities recorded for this day
+                        {language === "th" ? "ยังไม่มีกิจกรรมในวันนี้" : "No scheduled activities recorded for this day"}
                       </div>
                     ) : (
                       <table className="w-full text-left border-collapse text-[11px]">
@@ -275,33 +290,6 @@ export default function ExportItineraryView({ trip }: { trip: ExportTripData }) 
           <span>Official Travel Itinerary · 旅程表</span>
         </footer>
       </main>
-
-      {/* Print Specific CSS */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @media print {
-              @page {
-                size: A4 portrait;
-                margin: 10mm 12mm;
-              }
-              body {
-                background: #ffffff !important;
-                color: #000000 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-              .print\\:hidden {
-                display: none !important;
-              }
-              .print\\:break-inside-avoid {
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
-              }
-            }
-          `,
-        }}
-      />
     </div>
   );
 }
