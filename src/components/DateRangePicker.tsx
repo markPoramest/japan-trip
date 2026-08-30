@@ -11,6 +11,9 @@ interface DateRangePickerProps {
   minDate?: string;
   maxDate?: string;
   label?: string;
+  mode?: "trip" | "hotel";
+  startLabel?: string;
+  endLabel?: string;
 }
 
 const MONTHS_EN = [
@@ -47,6 +50,9 @@ export default function DateRangePicker({
   minDate,
   maxDate,
   label,
+  mode = "trip",
+  startLabel,
+  endLabel,
 }: DateRangePickerProps) {
   const { language, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -58,7 +64,7 @@ export default function DateRangePicker({
   const [hoverDate, setHoverDate] = useState<string | null>(null);
 
   // Base calendar month to show (0-indexed month)
-  const initialDate = parseISODate(startDate) || new Date();
+  const initialDate = parseISODate(startDate) || (minDate ? parseISODate(minDate) : null) || new Date();
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
 
@@ -71,13 +77,22 @@ export default function DateRangePicker({
         setViewYear(d.getFullYear());
         setViewMonth(d.getMonth());
       }
+    } else if (minDate) {
+      const d = parseISODate(minDate);
+      if (d) {
+        setViewYear(d.getFullYear());
+        setViewMonth(d.getMonth());
+      }
     }
-  }, [startDate, endDate, isOpen]);
+  }, [startDate, endDate, minDate, isOpen]);
 
-  // Click outside to close
+  // Click outside to close (and apply if valid)
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        if (tempStart && tempEnd && (tempStart !== startDate || tempEnd !== endDate)) {
+          onChange(tempStart, tempEnd);
+        }
         setIsOpen(false);
       }
     }
@@ -85,7 +100,7 @@ export default function DateRangePicker({
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, tempStart, tempEnd, startDate, endDate, onChange]);
 
   function prevMonth() {
     if (viewMonth === 0) {
@@ -107,19 +122,23 @@ export default function DateRangePicker({
 
   function handleDateClick(dateStr: string) {
     if (!tempStart || (tempStart && tempEnd)) {
-      // Start a new range selection
+      // 1st click: choose start date
       setTempStart(dateStr);
       setTempEnd("");
       setHoverDate(null);
     } else if (tempStart && !tempEnd) {
-      // Second click: completing range
+      // 2nd click: choose end date
       if (dateStr < tempStart) {
-        // If clicked date is before start date, restart selection with this new date
+        // Earlier than start: restart selection with new start
         setTempStart(dateStr);
         setTempEnd("");
+        setHoverDate(null);
       } else {
+        // Complete range: instant update & close (Google Flights flow)
         setTempEnd(dateStr);
         setHoverDate(null);
+        onChange(tempStart, dateStr);
+        setIsOpen(false);
       }
     }
   }
@@ -137,6 +156,7 @@ export default function DateRangePicker({
     setTempStart("");
     setTempEnd("");
     setHoverDate(null);
+    onChange("", "");
   }
 
   // Calculate durations
@@ -149,6 +169,8 @@ export default function DateRangePicker({
     : tempStart
     ? 1
     : 0;
+
+  const durationNights = Math.max(0, durationDays - 1);
 
   function renderMonth(year: number, month: number) {
     const firstDay = new Date(year, month, 1).getDay();
@@ -167,14 +189,14 @@ export default function DateRangePicker({
     return (
       <div className="w-full select-none">
         {/* Month Header */}
-        <div className="text-center font-bold text-sm text-text-primary mb-3">
+        <div className="text-center font-bold text-xs sm:text-sm text-text-primary mb-2.5">
           {monthName} {displayYear}
         </div>
 
         {/* Day of Week Labels */}
-        <div className="grid grid-cols-7 text-center text-[11px] font-bold text-text-muted mb-1.5">
+        <div className="grid grid-cols-7 text-center text-[10px] sm:text-[11px] font-bold text-text-muted mb-1">
           {(language === "th" ? DOW_TH : DOW_EN).map((dow, idx) => (
-            <div key={idx} className="py-1">
+            <div key={idx} className="py-0.5">
               {dow}
             </div>
           ))}
@@ -184,7 +206,7 @@ export default function DateRangePicker({
         <div className="grid grid-cols-7 gap-y-1 text-xs">
           {days.map((dayNum, idx) => {
             if (dayNum === null) {
-              return <div key={`empty-${idx}`} className="h-9" />;
+              return <div key={`empty-${idx}`} className="h-8 sm:h-8.5" />;
             }
 
             const currentD = new Date(year, month, dayNum);
@@ -192,7 +214,6 @@ export default function DateRangePicker({
 
             const isStart = dateStr === tempStart;
             const isEnd = dateStr === (tempEnd || (tempStart && !tempEnd && hoverDate === dateStr ? hoverDate : ""));
-            const isSingleDay = isStart && (tempEnd === tempStart || (!tempEnd && !hoverDate));
 
             // Range checks
             const rangeEnd = tempEnd || (hoverDate && hoverDate > tempStart ? hoverDate : "");
@@ -211,7 +232,7 @@ export default function DateRangePicker({
                     setHoverDate(dateStr);
                   }
                 }}
-                className={`h-9 flex items-center justify-center relative cursor-pointer ${
+                className={`h-8 sm:h-8.5 flex items-center justify-center relative cursor-pointer ${
                   isInRange || isHoverPreview ? "bg-accent/15" : ""
                 } ${isStart && (tempEnd || (hoverDate && hoverDate > tempStart)) ? "rounded-l-full bg-accent/15" : ""} ${
                   isEnd && tempStart && (tempEnd || (hoverDate && hoverDate > tempStart)) ? "rounded-r-full bg-accent/15" : ""
@@ -219,7 +240,7 @@ export default function DateRangePicker({
                 onClick={() => !isDisabled && handleDateClick(dateStr)}
               >
                 <div
-                  className={`w-8 h-8 flex items-center justify-center text-xs font-semibold transition-all relative z-10 ${
+                  className={`w-7 h-7 sm:w-7.5 sm:h-7.5 flex items-center justify-center text-[11px] sm:text-xs font-semibold transition-all relative z-10 ${
                     isDisabled
                       ? "text-text-faint/30 cursor-not-allowed"
                       : isStart || isEnd
@@ -243,25 +264,30 @@ export default function DateRangePicker({
   const nextViewMonth = viewMonth === 11 ? 0 : viewMonth + 1;
   const nextViewYear = viewMonth === 11 ? viewYear + 1 : viewYear;
 
+  const dateLocale = language === "th" ? "th-TH" : "en-GB";
+
+  const resolvedStartLabel =
+    startLabel || (mode === "hotel" ? (language === "th" ? "เช็คอิน" : "Check-in") : language === "th" ? "วันเริ่มต้น" : "Start Date");
+  const resolvedEndLabel =
+    endLabel || (mode === "hotel" ? (language === "th" ? "เช็คเอาท์" : "Check-out") : language === "th" ? "วันสิ้นสุด" : "End Date");
+
   const startFormatted = startDate
-    ? new Date(startDate + "T00:00:00").toLocaleDateString(language === "th" ? "th-TH" : "en-US", {
+    ? new Date(startDate + "T00:00:00").toLocaleDateString(dateLocale, {
         weekday: "short",
         day: "numeric",
         month: "short",
         year: "numeric",
       })
-    : language === "th" ? "เลือกวันเริ่มต้น" : "Select start date";
+    : language === "th" ? `เลือกวัน${resolvedStartLabel}` : `Select ${resolvedStartLabel.toLowerCase()}`;
 
   const endFormatted = endDate
-    ? new Date(endDate + "T00:00:00").toLocaleDateString(language === "th" ? "th-TH" : "en-US", {
+    ? new Date(endDate + "T00:00:00").toLocaleDateString(dateLocale, {
         weekday: "short",
         day: "numeric",
         month: "short",
         year: "numeric",
       })
-    : language === "th" ? "เลือกวันสิ้นสุด" : "Select end date";
-
-  const durationNights = Math.max(0, durationDays - 1);
+    : language === "th" ? `เลือกวัน${resolvedEndLabel}` : `Select ${resolvedEndLabel.toLowerCase()}`;
 
   return (
     <div className="relative w-full" ref={containerRef}>
@@ -272,7 +298,7 @@ export default function DateRangePicker({
         </label>
       )}
 
-      {/* Google Flights Style Dual Input Trigger Bar */}
+      {/* Dual Input Trigger Bar */}
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -291,7 +317,7 @@ export default function DateRangePicker({
             {/* Start Pill */}
             <div className="px-3 py-1.5 rounded-xl bg-bg-surface border border-border/80 text-xs font-bold text-text-primary">
               <span className="text-[10px] text-text-muted block font-normal leading-none mb-0.5">
-                {language === "th" ? "วันเริ่มต้น" : "Departure"}
+                {resolvedStartLabel}
               </span>
               <span>{startFormatted}</span>
             </div>
@@ -301,7 +327,7 @@ export default function DateRangePicker({
             {/* End Pill */}
             <div className="px-3 py-1.5 rounded-xl bg-bg-surface border border-border/80 text-xs font-bold text-text-primary">
               <span className="text-[10px] text-text-muted block font-normal leading-none mb-0.5">
-                {language === "th" ? "วันสิ้นสุด" : "Return"}
+                {resolvedEndLabel}
               </span>
               <span>{endFormatted}</span>
             </div>
@@ -311,25 +337,37 @@ export default function DateRangePicker({
         {/* Live Duration Badge */}
         {startDate && endDate && (
           <div className="px-3 py-1 rounded-full bg-accent/15 border border-accent/30 text-accent text-xs font-bold self-start sm:self-auto flex items-center gap-1">
-            <span>
-              {durationDays} {t("days")}
-            </span>
-            {durationNights > 0 && <span className="text-accent/80 font-normal">({durationNights} {t("nights")})</span>}
+            {mode === "hotel" ? (
+              <span>
+                {durationNights} {durationNights > 1 ? (language === "th" ? "คืน" : "nights") : (language === "th" ? "คืน" : "night")}
+              </span>
+            ) : (
+              <>
+                <span>
+                  {durationDays} {t("days")}
+                </span>
+                {durationNights > 0 && <span className="text-accent/80 font-normal">({durationNights} {t("nights")})</span>}
+              </>
+            )}
           </div>
         )}
       </button>
 
-      {/* Google Flights 2-Month Calendar Popover */}
+      {/* Responsive Calendar Popover */}
       {isOpen && (
-        <div className="absolute left-0 right-0 sm:left-auto sm:right-auto sm:w-[640px] mt-2 rounded-3xl bg-bg-card border border-border p-5 sm:p-6 shadow-2xl z-[999] animate-in fade-in zoom-in-95 duration-150 space-y-5">
+        <div className="absolute left-0 right-0 sm:left-0 sm:right-auto w-full sm:w-[540px] max-w-[calc(100vw-32px)] mt-2 rounded-3xl bg-bg-card border border-border p-4 sm:p-5 shadow-2xl z-[9999] animate-in fade-in zoom-in-95 duration-150 space-y-4">
           {/* Navigation Controls */}
           <div className="flex items-center justify-between pb-2 border-b border-border/60">
             <div className="flex items-center gap-2 text-xs font-bold text-text-primary">
               <CalendarIcon className="w-4 h-4 text-accent" />
-              <span>{language === "th" ? "เลือกช่วงวันเดินทาง" : "Select Travel Dates"}</span>
+              <span>{mode === "hotel" ? (language === "th" ? "เลือกวันเข้าพัก" : "Select Stay Dates") : language === "th" ? "เลือกช่วงวันเดินทาง" : "Select Travel Dates"}</span>
               {tempStart && (
                 <span className="text-accent font-mono text-xs">
-                  ({durationDays} {t("days")})
+                  {mode === "hotel" ? (
+                    `(${durationNights} ${durationNights > 1 ? (language === "th" ? "คืน" : "nights") : (language === "th" ? "คืน" : "night")})`
+                  ) : (
+                    `(${durationDays} ${t("days")})`
+                  )}
                 </span>
               )}
             </div>
@@ -338,24 +376,24 @@ export default function DateRangePicker({
               <button
                 type="button"
                 onClick={prevMonth}
-                className="w-8 h-8 rounded-xl bg-bg-surface hover:bg-accent hover:text-white text-text-secondary flex items-center justify-center transition-all cursor-pointer border border-border/60 active:scale-95"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-bg-surface hover:bg-accent hover:text-white text-text-secondary flex items-center justify-center transition-all cursor-pointer border border-border/60 active:scale-95"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={nextMonth}
-                className="w-8 h-8 rounded-xl bg-bg-surface hover:bg-accent hover:text-white text-text-secondary flex items-center justify-center transition-all cursor-pointer border border-border/60 active:scale-95"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-bg-surface hover:bg-accent hover:text-white text-text-secondary flex items-center justify-center transition-all cursor-pointer border border-border/60 active:scale-95"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Calendars Grid: 1 Month on mobile, 2 Months on desktop */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Calendars Grid: 1 Month on mobile/narrow, 2 Months on sm+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             {renderMonth(viewYear, viewMonth)}
-            <div className="hidden md:block">
+            <div className="hidden sm:block">
               {renderMonth(nextViewYear, nextViewMonth)}
             </div>
           </div>
@@ -375,18 +413,17 @@ export default function DateRangePicker({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer"
               >
                 {t("cancel")}
               </button>
               <button
                 type="button"
                 onClick={applyRange}
-                disabled={!tempStart}
-                className="px-6 py-2 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent transition-all hover:scale-105 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-1.5 rounded-xl bg-accent hover:bg-accent-light text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
-                <span>{language === "th" ? "ตกลง" : "Done"}</span>
+                <span>{t("saveChanges")}</span>
               </button>
             </div>
           </div>

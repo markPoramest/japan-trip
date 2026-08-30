@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { formatJPY } from "@/lib/utils";
-import { Calendar, CreditCard, Banknote, ArrowRight, MapPin, Loader2 } from "lucide-react";
+import { Calendar, CreditCard, Banknote, ArrowRight, MapPin, Loader2, Edit2, Check, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { updateTripDay } from "@/lib/actions";
 
 interface DayCardProps {
   tripId: string;
@@ -31,6 +32,10 @@ interface DayCardProps {
 export default function DayCard({ day, tripId, index = 0 }: DayCardProps) {
   const { t, language } = useLanguage();
   const [navigating, setNavigating] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [dayTitle, setDayTitle] = useState(day.title);
+  const [inputTitle, setInputTitle] = useState(day.title);
+  const [currentSlug, setCurrentSlug] = useState(day.slug);
 
   const totalCost = day.activities.reduce((sum, a) => sum + (a.cost || 0), 0);
   const icCost = day.activities.filter((a) => a.isIcCard).reduce((sum, a) => sum + (a.cost || 0), 0);
@@ -46,10 +51,61 @@ export default function DayCard({ day, tripId, index = 0 }: DayCardProps) {
     month: "short",
   });
 
+  function handleSaveTitle(e: React.MouseEvent | React.KeyboardEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const newTitle = inputTitle.trim();
+    if (!newTitle) return;
+
+    if (newTitle === dayTitle) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    const previousTitle = dayTitle;
+    const previousSlug = currentSlug;
+
+    // Instant Optimistic Update (0ms UI latency)
+    setDayTitle(newTitle);
+    setIsEditingTitle(false);
+
+    // Background server update
+    updateTripDay(day.id, tripId, {
+      title: newTitle,
+      dayNumber: day.dayNumber,
+    })
+      .then((updated) => {
+        if (updated?.slug) {
+          setCurrentSlug(updated.slug);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        // Rollback on failure
+        setDayTitle(previousTitle);
+        setInputTitle(previousTitle);
+        setCurrentSlug(previousSlug);
+        alert("Failed to update day title.");
+      });
+  }
+
+  function handleCancelEdit(e: React.MouseEvent | React.KeyboardEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setInputTitle(dayTitle);
+    setIsEditingTitle(false);
+  }
+
   return (
     <Link
-      href={`/trips/${tripId}/days/${day.slug}`}
-      onClick={() => setNavigating(true)}
+      href={`/trips/${tripId}/days/${currentSlug}`}
+      onClick={(e) => {
+        if (isEditingTitle) {
+          e.preventDefault();
+          return;
+        }
+        setNavigating(true);
+      }}
       data-aos="fade-up"
       data-aos-delay={(index % 6) * 80}
       className="bg-bg-card border border-border rounded-3xl p-5 hover:border-accent hover:shadow-earth transition-all flex flex-col justify-between group shadow-card cursor-pointer block select-none"
@@ -66,15 +122,73 @@ export default function DayCard({ day, tripId, index = 0 }: DayCardProps) {
               {formattedDate} ({day.dayOfWeek})
             </span>
           </div>
+
           <span className="text-xs font-medium text-text-faint bg-bg-surface px-2 py-0.5 rounded-full border border-border/60">
             {day.activities.length} {t("stops")}
           </span>
         </div>
 
-        {/* Title */}
-        <h3 className="text-lg font-bold text-text-primary mt-3 group-hover:text-accent transition-colors leading-snug">
-          {day.title}
-        </h3>
+        {/* Title / Inline Title Editor with Optimistic Update */}
+        {isEditingTitle ? (
+          <div
+            className="mt-3 flex items-center gap-1.5"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <input
+              type="text"
+              autoFocus
+              value={inputTitle}
+              onChange={(e) => setInputTitle(e.target.value)}
+              placeholder={`Day ${day.dayNumber} destination...`}
+              className="flex-1 px-3 py-1.5 bg-bg-base border border-accent rounded-xl text-sm font-bold text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSaveTitle(e);
+                } else if (e.key === "Escape") {
+                  handleCancelEdit(e);
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleSaveTitle}
+              className="p-2 rounded-xl bg-accent hover:bg-accent-hover text-white transition-all cursor-pointer"
+              title={t("saveChanges")}
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="p-2 rounded-xl bg-bg-surface text-text-muted hover:text-text-primary transition-all cursor-pointer"
+              title={t("cancel")}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center gap-2 group/title">
+            <h3 className="text-lg font-bold text-text-primary group-hover:text-accent transition-colors leading-snug truncate">
+              {dayTitle}
+            </h3>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setInputTitle(dayTitle);
+                setIsEditingTitle(true);
+              }}
+              className="p-1 rounded-lg text-text-muted hover:text-accent hover:bg-bg-surface transition-all cursor-pointer opacity-70 group-hover:opacity-100 flex-shrink-0"
+              title={t("editDayTitle")}
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Location pills */}
         <div className="mt-3 flex flex-wrap gap-1.5">

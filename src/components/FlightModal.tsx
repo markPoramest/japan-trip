@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { createFlight, updateFlight } from "@/lib/actions";
-import { X, Plane, FileText, Navigation, ArrowRightLeft } from "lucide-react";
+import { X, Plane, FileText, Navigation, ArrowRightLeft, Loader2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatJPY, formatTHB } from "@/lib/utils";
 
@@ -29,15 +31,21 @@ export default function FlightModal({
   exchangeRate = 0.24,
   flight,
 }: FlightModalProps) {
+  const router = useRouter();
   const { t, language } = useLanguage();
   const isEditing = !!flight;
 
+  const [mounted, setMounted] = useState(false);
   const [flightNo, setFlightNo] = useState("");
   const [route, setRoute] = useState("");
   const [inputCurrency, setInputCurrency] = useState<"THB" | "JPY">("THB");
   const [amountValue, setAmountValue] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (flight && isOpen) {
@@ -59,7 +67,7 @@ export default function FlightModal({
     }
   }, [flight, isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const numVal = parseFloat(amountValue) || 0;
   const thbVal = inputCurrency === "THB" ? numVal : Math.round(numVal * exchangeRate);
@@ -86,6 +94,7 @@ export default function FlightModal({
           notes: notes.trim() || undefined,
         });
       }
+      router.refresh();
       onClose();
     } catch (err) {
       console.error(err);
@@ -99,9 +108,9 @@ export default function FlightModal({
     "w-full px-3.5 py-2.5 bg-bg-base border border-border rounded-xl text-text-primary text-sm placeholder-text-faint focus:outline-none focus:border-accent transition-colors";
   const labelClass = "block text-xs font-bold text-text-secondary uppercase tracking-wider mb-1.5 flex items-center gap-1.5";
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-bg-card border border-border rounded-3xl w-full max-w-md overflow-hidden shadow-2xl my-8 animate-in fade-in zoom-in-95 duration-150">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto">
+      <div className="bg-bg-card border border-border rounded-3xl w-full max-w-lg shadow-2xl my-auto animate-in fade-in zoom-in-95 duration-150 relative">
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
@@ -110,14 +119,15 @@ export default function FlightModal({
           </h3>
           <button
             onClick={onClose}
+            disabled={loading}
             type="button"
-            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors"
+            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
           <div>
             <label className={labelClass}>
               <Plane className="w-3.5 h-3.5 text-sage" /> {t("flightNumber")} *
@@ -127,7 +137,7 @@ export default function FlightModal({
               type="text"
               value={flightNo}
               onChange={(e) => setFlightNo(e.target.value)}
-              placeholder="e.g. NH850, JL708, TG642"
+              placeholder="e.g. TG676, JL708, XJ600"
               className={inputClass}
             />
           </div>
@@ -141,7 +151,7 @@ export default function FlightModal({
               type="text"
               value={route}
               onChange={(e) => setRoute(e.target.value)}
-              placeholder="e.g. BKK ➔ HND, CTS ➔ NRT"
+              placeholder="e.g. BKK ➔ NRT (Round-trip)"
               className={inputClass}
             />
           </div>
@@ -150,7 +160,7 @@ export default function FlightModal({
           <div className="p-3.5 bg-bg-surface border border-border rounded-2xl space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-                {language === "th" ? "เลือกสกุลเงิน & ค่าตั๋วเครื่องบิน" : "Currency & Airfare"}
+                {language === "th" ? "เลือกสกุลเงิน & ค่าตั๋วเครื่องบิน" : "Currency & Airfare Cost"}
               </label>
               <select
                 value={inputCurrency}
@@ -167,7 +177,7 @@ export default function FlightModal({
                 type="number"
                 value={amountValue}
                 onChange={(e) => setAmountValue(e.target.value)}
-                placeholder={inputCurrency === "THB" ? "฿ 18,500" : "¥ 75,000"}
+                placeholder={inputCurrency === "THB" ? "฿ 18,500" : "¥ 78,000"}
                 className={`${inputClass} font-mono text-base font-bold`}
               />
             </div>
@@ -190,13 +200,13 @@ export default function FlightModal({
 
           <div>
             <label className={labelClass}>
-              <FileText className="w-3.5 h-3.5 text-text-faint" /> {t("remarksLinks")}
+              <FileText className="w-3.5 h-3.5 text-text-faint" /> {t("bookingRef")}
             </label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. 23:30 - 07:30 (+1) / Carry-on 7kg + Check-in 23kg"
+              placeholder="e.g. Airline PNR / Booking Ref #ABCDEF"
               className={inputClass}
             />
           </div>
@@ -206,20 +216,23 @@ export default function FlightModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors"
+              disabled={loading}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer disabled:opacity-50"
             >
               {t("cancel")}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-light text-white text-xs font-bold shadow-accent transition-all hover:scale-105 disabled:opacity-60 cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-accent hover:bg-accent-light text-white text-xs font-bold shadow-accent transition-all hover:scale-105 disabled:opacity-60 cursor-pointer flex items-center gap-1.5"
             >
-              {loading ? t("creating") : isEditing ? t("saveChanges") : t("addFlight")}
+              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{loading ? (language === "th" ? "กำลังบันทึก..." : "Saving...") : isEditing ? t("saveChanges") : t("addFlight")}</span>
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

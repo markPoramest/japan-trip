@@ -8,6 +8,8 @@ import { useLanguage } from "@/context/LanguageContext";
 interface BookingsClientProps {
   trip: {
     id: string;
+    startDate?: string | Date;
+    endDate?: string | Date;
     exchangeRate: number;
     hotels: any[];
     passes: any[];
@@ -21,6 +23,9 @@ interface BookingsClientProps {
 export default function BookingsClient({ trip, totalIcSpendJpy, totalNonIcSpendJpy }: BookingsClientProps) {
   const { t } = useLanguage();
 
+  const startStr = trip.startDate ? (typeof trip.startDate === "string" ? trip.startDate : trip.startDate.toISOString()) : undefined;
+  const endStr = trip.endDate ? (typeof trip.endDate === "string" ? trip.endDate : trip.endDate.toISOString()) : undefined;
+
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
       <div data-aos="fade-down">
@@ -29,7 +34,13 @@ export default function BookingsClient({ trip, totalIcSpendJpy, totalNonIcSpendJ
       </div>
 
       <div data-aos="fade-up">
-        <HotelTable tripId={trip.id} hotels={trip.hotels} exchangeRate={trip.exchangeRate} />
+        <HotelTable
+          tripId={trip.id}
+          hotels={trip.hotels}
+          exchangeRate={trip.exchangeRate}
+          tripStartDate={startStr}
+          tripEndDate={endStr}
+        />
       </div>
 
       <div data-aos="fade-up" data-aos-delay="100">

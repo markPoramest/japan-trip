@@ -128,9 +128,129 @@ export async function updateTrip(tripId: string, data: {
   const updated = await db.trip.update({
     where: { id: tripId },
     data: updateData,
+    include: {
+      days: {
+        orderBy: { dayNumber: "asc" },
+      },
+    },
   });
+
+  // If date range is updated, sync days by sequence (reschedule, expand, or trim)
+  if (data.startDate && data.endDate) {
+    const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const [sY, sM, sD] = data.startDate.split("-").map(Number);
+    const [eY, eM, eD] = data.endDate.split("-").map(Number);
+    const sDate = new Date(sY, sM - 1, sD);
+    const eDate = new Date(eY, eM - 1, eD);
+
+    if (!isNaN(sDate.getTime()) && !isNaN(eDate.getTime()) && eDate >= sDate) {
+      // Generate expected sequence of dates (YYYY-MM-DD)
+      const expectedDates: string[] = [];
+      const cur = new Date(sDate);
+      while (cur <= eDate) {
+        const y = cur.getFullYear();
+        const m = String(cur.getMonth() + 1).padStart(2, "0");
+        const dayNum = String(cur.getDate()).padStart(2, "0");
+        expectedDates.push(`${y}-${m}-${dayNum}`);
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      const existingDays = updated.days;
+      const oldCount = existingDays.length;
+      const newCount = expectedDates.length;
+
+      // 1. Reschedule common days (Days 1..min(oldCount, newCount)) to their new dates, keeping activities intact!
+      const commonCount = Math.min(oldCount, newCount);
+      for (let i = 0; i < commonCount; i++) {
+        const day = existingDays[i];
+        const dateStr = expectedDates[i];
+        const dayNumber = i + 1;
+        const [y, m, d] = dateStr.split("-").map(Number);
+        const dayDate = new Date(y, m - 1, d);
+        const dow = DOW[dayDate.getDay()];
+        const slug = `day-${dayNumber}-day`;
+
+        await db.tripDay.update({
+          where: { id: day.id },
+          data: {
+            dayNumber,
+            date: new Date(dateStr + "T00:00:00"),
+            dayOfWeek: dow,
+            slug,
+          },
+        });
+      }
+
+      // 2. If range was extended (newCount > oldCount), add only the new days (e.g. 5 -> 9 adds Day 6..9)
+      if (newCount > oldCount) {
+        for (let i = oldCount; i < newCount; i++) {
+          const dateStr = expectedDates[i];
+          const dayNumber = i + 1;
+          const [y, m, d] = dateStr.split("-").map(Number);
+          const dayDate = new Date(y, m - 1, d);
+          const dow = DOW[dayDate.getDay()];
+          const slug = `day-${dayNumber}-day`;
+
+          await db.tripDay.create({
+            data: {
+              tripId,
+              dayNumber,
+              date: new Date(dateStr + "T00:00:00"),
+              dayOfWeek: dow,
+              slug,
+              title: `Day ${dayNumber}`,
+            },
+          });
+        }
+      }
+
+      // 3. If range was reduced (newCount < oldCount), delete the trailing days (e.g. 5 -> 3 deletes Day 4 & 5)
+      if (newCount < oldCount) {
+        for (let i = newCount; i < oldCount; i++) {
+          const dayToDelete = existingDays[i];
+          // Delete all activities under this day first
+          await db.dayActivity.deleteMany({
+            where: { dayId: dayToDelete.id },
+          });
+          // Delete the trip day
+          await db.tripDay.delete({
+            where: { id: dayToDelete.id },
+          });
+        }
+      }
+    }
+  }
+
   revalidatePath("/trips");
   revalidatePath(`/trips/${tripId}`);
+  return updated;
+}
+
+export async function updateTripDay(
+  dayId: string,
+  tripId: string,
+  data: { title?: string; date?: string; dayNumber?: number }
+) {
+  const updateData: any = {};
+  if (data.title !== undefined) {
+    updateData.title = data.title;
+    const clean = data.title.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "-").substring(0, 30).replace(/-$/, "");
+    if (data.dayNumber) {
+      updateData.slug = `day-${data.dayNumber}-${clean || "day"}`;
+    }
+  }
+  if (data.date !== undefined) {
+    updateData.date = new Date(data.date + "T00:00:00");
+  }
+  if (data.dayNumber !== undefined) {
+    updateData.dayNumber = data.dayNumber;
+  }
+
+  const updated = await db.tripDay.update({
+    where: { id: dayId },
+    data: updateData,
+  });
+
   return updated;
 }
 
@@ -168,7 +288,7 @@ export async function deleteTrip(tripId: string) {
 
   await db.trip.delete({ where: { id: tripId } });
   revalidatePath("/trips");
-  redirect("/trips");
+  return { success: true };
 }
 
 // ─────────────────────────────────────────────

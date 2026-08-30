@@ -1,7 +1,7 @@
 "use client";
 
 import { formatJPY, formatTHB } from "@/lib/utils";
-import { Wallet, Plane, Hotel, CircleDollarSign } from "lucide-react";
+import { Wallet, Plane, Hotel, CircleDollarSign, Train } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface TripStatsProps {
@@ -53,16 +53,25 @@ export default function TripStats({
       iconBg: "bg-sand-subtle border-sand-muted text-sand",
       highlight: false,
     },
-    // 3. Total Cost Everyday
+    // 3. Rail Passes
+    {
+      label: t("railPasses"),
+      value: formatJPY(totalPassJpy),
+      sub: `≈ ${formatTHB(totalPassJpy * rate)}`,
+      icon: Train,
+      iconBg: "bg-olive-subtle border-olive-muted text-olive",
+      highlight: false,
+    },
+    // 4. Total Cost Everyday (Activities)
     {
       label: t("totalCostEveryday"),
       value: formatJPY(totalActivitiesCostJpy),
       sub: `≈ ${formatTHB(totalActivitiesCostJpy * rate)}`,
       icon: CircleDollarSign,
-      iconBg: "bg-olive-subtle border-olive-muted text-olive",
+      iconBg: "bg-accent/10 border-accent/20 text-accent",
       highlight: false,
     },
-    // 4. Grand Total
+    // 5. Grand Total
     {
       label: t("grandTotalEstimated"),
       value: formatTHB(totalTripEstimatedThb),
@@ -74,17 +83,17 @@ export default function TripStats({
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       {cards.map((card, idx) => {
         const Icon = card.icon;
         return (
           <div
             key={card.label}
             data-aos="fade-up"
-            data-aos-delay={idx * 100}
+            data-aos-delay={idx * 80}
             className={`rounded-3xl p-5 shadow-card flex flex-col justify-between transition-all hover:shadow-earth ${
               card.highlight
-                ? "bg-gradient-to-br from-accent/10 via-bg-card to-bg-card border-2 border-accent shadow-accent/20"
+                ? "bg-gradient-to-br from-accent/10 via-bg-card to-bg-card border-2 border-accent shadow-accent/20 sm:col-span-2 md:col-span-1 lg:col-span-1"
                 : "bg-bg-card border border-border hover:border-border"
             }`}
           >

@@ -23,7 +23,20 @@ export default function NavigationProgressBar() {
     };
 
     const handleAnchorClick = (event: MouseEvent) => {
+      if (event.defaultPrevented) return;
+
       const target = event.target as HTMLElement;
+      if (
+        !target ||
+        target.closest("button") ||
+        target.closest("input") ||
+        target.closest("textarea") ||
+        target.closest("select") ||
+        target.closest("[data-no-progress]")
+      ) {
+        return;
+      }
+
       const anchor = target.closest("a");
 
       if (
@@ -78,9 +91,9 @@ export default function NavigationProgressBar() {
 
       {/* Floating Top-Right Mini Spinner Badge */}
       {loading && (
-        <div className="fixed top-3 right-3 z-[9999] pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-card/90 backdrop-blur-md border border-accent/40 shadow-earth text-xs font-bold text-accent animate-in fade-in zoom-in-90 duration-150">
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />
-          <span className="font-mono text-[11px] tracking-wide">Loading...</span>
+        <div className="fixed top-4 right-4 z-[9999] bg-bg-card/90 backdrop-blur-md border border-accent/30 text-accent px-3 py-1.5 rounded-full text-xs font-bold shadow-earth flex items-center gap-2 animate-in fade-in duration-150 pointer-events-none">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <span>Loading...</span>
         </div>
       )}
     </>

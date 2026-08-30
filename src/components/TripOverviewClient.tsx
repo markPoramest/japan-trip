@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import TripStats from "@/components/TripStats";
 import DayCard from "@/components/DayCard";
 import HotelTable from "@/components/HotelTable";
 import PassCard from "@/components/PassCard";
 import BudgetBreakdown from "@/components/BudgetBreakdown";
 import EditTripModal from "@/components/EditTripModal";
-import { Sparkles, Calendar, MapPin, Edit3, Printer } from "lucide-react";
+import { deleteTrip } from "@/lib/actions";
+import { Sparkles, Calendar, MapPin, Edit3, Printer, Trash2, AlertTriangle, Loader2, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface TripData {
@@ -49,15 +51,90 @@ interface TripData {
 }
 
 export default function TripOverviewClient({ trip }: { trip: TripData }) {
+  const router = useRouter();
   const { t, language } = useLanguage();
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const dateLocale = language === "th" ? "th-TH" : "en-GB";
 
   const startStr = new Date(trip.startDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
   const endStr = new Date(trip.endDate).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
 
+  async function handleDeleteTrip() {
+    setDeleting(true);
+    try {
+      await deleteTrip(trip.id);
+      setShowDeleteModal(false);
+      router.push("/trips");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete trip.");
+      setDeleting(false);
+    }
+  }
+
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-10">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-10 relative">
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-bg-card border border-border rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
+                <AlertTriangle className="w-4 h-4" />
+                <span>{t("deleteTripConfirmTitle")}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-red-950/20 border border-red-500/20 space-y-2">
+              <p className="text-xs text-text-muted leading-relaxed">
+                {t("deleteTripConfirmText")}
+              </p>
+              <p className="text-sm font-bold text-text-primary">
+                &quot;{trip.title}&quot;
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteTrip}
+                disabled={deleting}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>{t("deleting")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{t("deleteTrip")}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero banner with AOS */}
       <div data-aos="fade-down" className="relative overflow-hidden rounded-3xl bg-card-gradient border border-border p-6 sm:p-10 shadow-earth">
         <div className="relative z-10 max-w-3xl">
@@ -68,10 +145,10 @@ export default function TripOverviewClient({ trip }: { trip: TripData }) {
 
             <button
               onClick={() => setEditModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-bg-surface hover:bg-accent hover:text-white border border-border text-text-secondary text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-bg-surface hover:bg-accent hover:text-white border border-border text-text-secondary text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span>{t("tripDetails")}</span>
+              <span>{t("editTrip")}</span>
             </button>
 
             <Link
@@ -81,6 +158,17 @@ export default function TripOverviewClient({ trip }: { trip: TripData }) {
               <Printer className="w-3.5 h-3.5" />
               <span>{t("exportPdf")}</span>
             </Link>
+
+            {/* Delete Trip Button */}
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-bg-surface hover:bg-red-950/40 text-text-muted hover:text-red-400 border border-border hover:border-red-500/30 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              title={t("deleteTrip")}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{t("deleteTrip")}</span>
+            </button>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold text-text-primary tracking-tight leading-tight">
@@ -152,7 +240,13 @@ export default function TripOverviewClient({ trip }: { trip: TripData }) {
 
       {/* Hotels, Passes & Flights with AOS */}
       <section className="space-y-6" data-aos="fade-up">
-        <HotelTable tripId={trip.id} hotels={trip.hotels} exchangeRate={trip.exchangeRate} />
+        <HotelTable
+          tripId={trip.id}
+          hotels={trip.hotels}
+          exchangeRate={trip.exchangeRate}
+          tripStartDate={trip.startDate}
+          tripEndDate={trip.endDate}
+        />
         <PassCard tripId={trip.id} passes={trip.passes} flights={trip.flights} exchangeRate={trip.exchangeRate} />
       </section>
 

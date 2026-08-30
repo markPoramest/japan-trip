@@ -248,7 +248,7 @@ export default function TripsListClient({ trips }: { trips: TripItem[] }) {
                 <p className="text-sm font-medium">{t("noIncomingTrips")}</p>
                 <Link
                   href="/trips/new"
-                  className="inline-flex items-center gap-1.5 mt-3 text-xs text-accent hover:underline font-bold cursor-pointer"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent hover:underline font-bold"
                 >
                   <PlusCircle className="w-3.5 h-3.5" /> {t("planNewTrip")}
                 </Link>
@@ -262,33 +262,25 @@ export default function TripsListClient({ trips }: { trips: TripItem[] }) {
         )}
 
         {/* 2. Previous Plans Section */}
-        {trips.length > 0 && (
-          <section className="space-y-5" data-aos="fade-up" data-aos-delay="150">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-bg-surface text-text-muted border border-border flex items-center justify-center">
-                  <History className="w-4 h-4" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-extrabold text-text-primary tracking-tight">
-                    {t("previousPlans")}
-                  </h2>
-                </div>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-bg-surface text-text-secondary border border-border">
-                  {previousTrips.length}
-                </span>
+        {previousTrips.length > 0 && (
+          <section className="space-y-5 pt-4" data-aos="fade-up">
+            <div className="flex items-center gap-3 border-b border-border/60 pb-3">
+              <div className="w-8 h-8 rounded-xl bg-bg-surface text-text-muted border border-border flex items-center justify-center">
+                <History className="w-4 h-4" />
               </div>
+              <div>
+                <h2 className="text-xl font-extrabold text-text-primary tracking-tight">
+                  {t("previousPlans")}
+                </h2>
+              </div>
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-bg-surface text-text-muted border border-border">
+                {previousTrips.length}
+              </span>
             </div>
 
-            {previousTrips.length === 0 ? (
-              <div className="bg-bg-card border border-dashed border-border rounded-2xl p-8 text-center text-text-muted">
-                <p className="text-sm font-medium">{t("noPreviousTrips")}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {previousTrips.map((trip, idx) => renderTripCard(trip, true, idx))}
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {previousTrips.map((trip, idx) => renderTripCard(trip, true, idx))}
+            </div>
           </section>
         )}
       </main>

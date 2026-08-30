@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatJPY, formatTHB } from "@/lib/utils";
 import { Hotel, Calendar, CheckCircle2, Plus, Edit2, Trash2 } from "lucide-react";
 import { deleteHotel } from "@/lib/actions";
@@ -21,11 +22,16 @@ export default function HotelTable({
   tripId,
   hotels,
   exchangeRate = 0.24,
+  tripStartDate,
+  tripEndDate,
 }: {
   tripId?: string;
   hotels: HotelBooking[];
   exchangeRate: number;
+  tripStartDate?: string;
+  tripEndDate?: string;
 }) {
+  const router = useRouter();
   const { t } = useLanguage();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<HotelBooking | null>(null);
@@ -41,6 +47,7 @@ export default function HotelTable({
     setDeletingId(id);
     try {
       await deleteHotel(id, tripId);
+      router.refresh();
     } catch (err) {
       console.error(err);
       alert("Failed to delete hotel");
@@ -79,7 +86,7 @@ export default function HotelTable({
 
         {hotels.length > 0 && (
           <div className="text-right">
-            <div className="text-xs text-text-muted font-semibold uppercase">{t("totalHotel")}</div>
+            <div className="text-xs text-text-muted uppercase font-semibold">{t("totalHotel")}</div>
             <div className="text-lg font-bold text-text-primary font-mono">{formatTHB(totalThb)}</div>
             <div className="text-[11px] text-text-muted font-mono">≈ {formatJPY(totalJpy)}</div>
           </div>
@@ -88,7 +95,7 @@ export default function HotelTable({
 
       {hotels.length === 0 ? (
         <div className="bg-bg-surface/50 border border-dashed border-border rounded-2xl p-6 text-center text-text-muted text-xs">
-          <p>{t("noHotelsPlanned")}</p>
+          <p className="font-semibold text-text-secondary">{t("noHotelsPlanned")}</p>
           {tripId && (
             <button
               type="button"
@@ -96,7 +103,7 @@ export default function HotelTable({
                 setEditingHotel(null);
                 setModalOpen(true);
               }}
-              className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/15 text-accent hover:bg-accent hover:text-white border border-accent/30 font-bold transition-all cursor-pointer"
+              className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-accent/15 text-accent hover:bg-accent hover:text-white border border-accent/30 font-bold transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{t("addHotel")}</span>
@@ -105,65 +112,64 @@ export default function HotelTable({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-border text-xs font-bold uppercase tracking-wider text-text-muted">
-                <th className="pb-3 pl-2">{t("hotelStay")}</th>
+              <tr className="border-b border-border text-text-secondary uppercase font-semibold text-[10px] tracking-wider">
+                <th className="pb-3 pl-2">{t("hotelName")}</th>
                 <th className="pb-3">{t("dates")}</th>
                 <th className="pb-3 text-right">{t("costThb")}</th>
                 <th className="pb-3 text-right">{t("costJpy")}</th>
-                {tripId && <th className="pb-3 text-right pr-2"></th>}
+                <th className="pb-3 pl-4">{t("bookingRef")}</th>
+                {tripId && <th className="pb-3 text-right pr-2">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {hotels.map((hotel) => {
-                const rowThb = hotel.costThb || (hotel.costJpy ? hotel.costJpy * rate : 0);
-                const rowJpy = hotel.costJpy || (hotel.costThb ? hotel.costThb / rate : 0);
+                const costThb = hotel.costThb || (hotel.costJpy ? hotel.costJpy * rate : 0);
+                const costJpy = hotel.costJpy || (hotel.costThb ? hotel.costThb / rate : 0);
+                const isDeleting = deletingId === hotel.id;
 
                 return (
-                  <tr key={hotel.id} className="hover:bg-bg-surface/50 transition-colors group">
-                    <td className="py-3.5 pl-2">
-                      <div className="font-semibold text-text-primary flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-olive flex-shrink-0" />
-                        <div>
-                          <span>{hotel.name}</span>
-                          {(hotel.notes || hotel.bookingRef) && (
-                            <span className="block text-[11px] text-text-muted font-normal">
-                              {hotel.notes || hotel.bookingRef}
-                            </span>
-                          )}
-                        </div>
+                  <tr key={hotel.id} className="hover:bg-bg-surface/60 transition-colors group">
+                    <td className="py-3.5 pl-2 font-bold text-text-primary flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-accent flex-shrink-0" />
+                      <span>{hotel.name}</span>
+                    </td>
+                    <td className="py-3.5 text-text-secondary font-medium">
+                      <div className="flex items-center gap-1 text-text-muted">
+                        <Calendar className="w-3 h-3 text-accent" />
+                        <span>{hotel.dateRange}</span>
                       </div>
                     </td>
-                    <td className="py-3.5 text-text-secondary">
-                      <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-bg-surface border border-border">
-                        <Calendar className="w-3 h-3 text-accent/70" /> {hotel.dateRange}
-                      </span>
-                    </td>
-                    <td className="py-3.5 text-right font-mono font-medium text-text-primary">
-                      {rowThb > 0 ? formatTHB(rowThb) : "—"}
+                    <td className="py-3.5 text-right font-mono font-bold text-text-primary">
+                      {formatTHB(costThb)}
                     </td>
                     <td className="py-3.5 text-right font-mono text-text-muted">
-                      {rowJpy > 0 ? formatJPY(rowJpy) : "—"}
+                      {formatJPY(costJpy)}
+                    </td>
+                    <td className="py-3.5 pl-4 text-text-muted font-mono text-[11px]">
+                      {hotel.bookingRef || hotel.notes || "-"}
                     </td>
                     {tripId && (
                       <td className="py-3.5 text-right pr-2">
-                        <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                           <button
                             type="button"
                             onClick={() => {
                               setEditingHotel(hotel);
                               setModalOpen(true);
                             }}
-                            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-text-muted hover:text-accent hover:bg-bg-surface transition-colors cursor-pointer"
+                            title={t("editHotel")}
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
-                            disabled={deletingId === hotel.id}
+                            disabled={isDeleting}
                             onClick={() => handleDelete(hotel.id)}
-                            className="p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer disabled:opacity-50"
+                            title={t("deleteTrip")}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -181,10 +187,15 @@ export default function HotelTable({
       {tripId && (
         <HotelModal
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={() => {
+            setModalOpen(false);
+            setEditingHotel(null);
+          }}
           tripId={tripId}
           exchangeRate={rate}
           hotel={editingHotel}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
         />
       )}
     </div>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createFullTrip } from "@/lib/actions";
-import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Sparkles, AlertCircle, RefreshCw, JapaneseYen, Loader2, PlaneTakeoff, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Sparkles, AlertCircle, RefreshCw, JapaneseYen, Loader2, PlaneTakeoff, CheckCircle2, Info } from "lucide-react";
 import Link from "next/link";
 import SettingsKebab from "@/components/SettingsKebab";
 import DateRangePicker from "@/components/DateRangePicker";
@@ -64,8 +64,24 @@ export default function NewTripPage() {
   const [exchangeRate, setExchangeRate] = useState("0.24");
   const currency = "JPY";
   const baseCurrency = "THB";
-  const [days, setDays] = useState<DayEntry[]>([{ date: "", title: "" }]);
+  const [days, setDays] = useState<DayEntry[]>([]);
   const [passes, setPasses] = useState<PassEntry[]>([]);
+
+  // Automatically sync days whenever startDate or endDate changes
+  useEffect(() => {
+    if (startDate && endDate && endDate >= startDate) {
+      const dates = getDaysInRange(startDate, endDate);
+      setDays((prev) => {
+        const existingMap = new Map(prev.map((d) => [d.date, d.title]));
+        return dates.map((dateStr, idx) => ({
+          date: dateStr,
+          title: existingMap.get(dateStr) || (prev[idx] && prev[idx].date === dateStr ? prev[idx].title : ""),
+        }));
+      });
+    } else if (!startDate && !endDate) {
+      setDays([]);
+    }
+  }, [startDate, endDate]);
 
   // Calculate duration in days & nights
   const isValidRange = startDate && endDate && endDate >= startDate;
@@ -76,84 +92,8 @@ export default function NewTripPage() {
     : 0;
   const durationNights = Math.max(0, durationDays - 1);
 
-  // Sync days when date range changes
-  function syncDaysFromRange(newStart: string, newEnd: string) {
-    const dates = getDaysInRange(newStart, newEnd);
-    if (dates.length === 0) return;
-
-    setDays((prev) => {
-      return dates.map((dateStr, idx) => {
-        const existingTitle = prev[idx]?.title || "";
-        return {
-          date: dateStr,
-          title: existingTitle,
-        };
-      });
-    });
-  }
-
-  function handleStartDateChange(newStart: string) {
-    setStartDate(newStart);
-
-    let targetEnd = endDate;
-    if (!endDate || endDate < newStart) {
-      targetEnd = newStart;
-      setEndDate(newStart);
-    }
-
-    if (newStart && targetEnd) {
-      syncDaysFromRange(newStart, targetEnd);
-    }
-  }
-
-  function handleEndDateChange(newEnd: string) {
-    if (startDate && newEnd < startDate) {
-      setEndDate(startDate);
-      syncDaysFromRange(startDate, startDate);
-      return;
-    }
-
-    setEndDate(newEnd);
-    if (startDate && newEnd) {
-      syncDaysFromRange(startDate, newEnd);
-    }
-  }
-
-  function addDay() {
-    let nextDate = "";
-    if (days.length > 0 && days[days.length - 1].date) {
-      const lastDate = parseLocalDate(days[days.length - 1].date);
-      if (lastDate) {
-        lastDate.setDate(lastDate.getDate() + 1);
-        const nextDateStr = formatLocalDate(lastDate);
-        if (!endDate || nextDateStr <= endDate) {
-          nextDate = nextDateStr;
-        }
-      }
-    } else if (startDate) {
-      nextDate = startDate;
-    }
-
-    setDays((prev) => [...prev, { date: nextDate, title: "" }]);
-  }
-
-  function removeDay(i: number) {
-    setDays((prev) => prev.filter((_, idx) => idx !== i));
-  }
-
-  function updateDay(i: number, field: keyof DayEntry, value: string) {
-    if (field === "date" && value) {
-      if (startDate && value < startDate) {
-        alert(t("scheduleMustBeWithinTrip", { start: startDate, end: endDate || startDate }));
-        return;
-      }
-      if (endDate && value > endDate) {
-        alert(t("scheduleMustBeWithinTrip", { start: startDate, end: endDate }));
-        return;
-      }
-    }
-
-    setDays((prev) => prev.map((d, idx) => (idx === i ? { ...d, [field]: value } : d)));
+  function updateDayTitle(i: number, value: string) {
+    setDays((prev) => prev.map((d, idx) => (idx === i ? { ...d, title: value } : d)));
   }
 
   function addPass() {
@@ -191,16 +131,17 @@ export default function NewTripPage() {
     setLoadingStage("saving");
 
     try {
-      // Prepare days payload
-      const validDays = days.filter((d) => d.date && d.title);
+      // Prepare days payload - auto fallback to "Day X" if title is empty
+      const validDays = days.length > 0 ? days : getDaysInRange(startDate, endDate).map((dateStr) => ({ date: dateStr, title: "" }));
       const daysPayload = validDays.map((d, i) => {
         const dateObj = parseLocalDate(d.date) || new Date();
+        const dayTitle = d.title?.trim() || `${t("day")} ${i + 1}`;
         return {
           dayNumber: i + 1,
           date: d.date,
           dayOfWeek: DOW[dateObj.getDay()],
-          slug: buildSlug(i + 1, d.title),
-          title: d.title,
+          slug: buildSlug(i + 1, dayTitle),
+          title: dayTitle,
         };
       });
 
@@ -310,7 +251,7 @@ export default function NewTripPage() {
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />
                 )}
                 <span>
-                  {days.filter((d) => d.date && d.title).length} {t("dailySchedule")}
+                  {durationDays} {t("dailySchedule")}
                 </span>
               </div>
             </div>
@@ -390,7 +331,6 @@ export default function NewTripPage() {
                 onChange={(start, end) => {
                   setStartDate(start);
                   setEndDate(end);
-                  syncDaysFromRange(start, end);
                 }}
               />
             </div>
@@ -511,86 +451,68 @@ export default function NewTripPage() {
             </button>
           </div>
 
-          {/* Days Setup with Date Range Constraints */}
+          {/* Daily Schedule - Strictly Auto-Generated from Date Range */}
           <div className="bg-bg-card border border-border rounded-3xl p-6 shadow-card space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-accent" /> {t("dailySchedule")}
               </h2>
-              <div className="flex items-center gap-3">
-                {startDate && endDate && (
-                  <button
-                    type="button"
-                    onClick={() => syncDaysFromRange(startDate, endDate)}
-                    className="text-xs text-accent hover:text-accent-hover font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                    title={t("autoGenerateDays")}
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>{t("autoGenerateDays")}</span>
-                  </button>
-                )}
-                <span className="text-xs text-text-muted">
-                  {days.length} {t("days")}
-                </span>
+              <span className="text-xs font-bold text-accent bg-accent/10 px-2.5 py-0.5 rounded-full border border-accent/20">
+                {days.length} {t("days")}
+              </span>
+            </div>
+
+            {/* Helper Banner to expand days */}
+            <div className="p-3.5 bg-bg-surface rounded-2xl border border-border/80 text-xs text-text-muted flex items-center gap-2.5">
+              <Info className="w-4 h-4 text-accent flex-shrink-0" />
+              <span>{t("expandRangeToAddDays")}</span>
+            </div>
+
+            {days.length === 0 ? (
+              <div className="p-6 text-center text-xs text-text-muted bg-bg-surface/50 rounded-2xl border border-dashed border-border">
+                {language === "th" ? "กรุณาเลือกช่วงวันเดินทางด้านบน เพื่อสร้างตารางรายวันอัตโนมัติ" : "Please select your trip dates above to auto-generate your daily schedule."}
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {days.map((day, i) => {
+                  const dayDateObj = day.date ? parseLocalDate(day.date) : null;
+                  const dowStr = dayDateObj && !isNaN(dayDateObj.getTime()) ? DOW[dayDateObj.getDay()] : "";
+                  const formattedDate = dayDateObj
+                    ? dayDateObj.toLocaleDateString(language === "th" ? "th-TH" : "en-US", {
+                        day: "numeric",
+                        month: "short",
+                      })
+                    : day.date;
 
-            <div className="space-y-3">
-              {days.map((day, i) => {
-                const dayDateObj = day.date ? parseLocalDate(day.date) : null;
-                const dowStr = dayDateObj && !isNaN(dayDateObj.getTime()) ? DOW[dayDateObj.getDay()] : "";
+                  return (
+                    <div key={day.date || i} className="flex items-center gap-3 bg-bg-surface rounded-2xl p-3 border border-border/60 flex-wrap sm:flex-nowrap">
+                      <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 text-accent text-xs font-bold flex items-center justify-center flex-shrink-0">
+                        {i + 1}
+                      </div>
 
-                return (
-                  <div key={i} className="flex items-center gap-3 bg-bg-surface rounded-2xl p-3 border border-border/60 flex-wrap sm:flex-nowrap">
-                    <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 text-accent text-xs font-bold flex items-center justify-center flex-shrink-0">
-                      {i + 1}
-                    </div>
+                      {/* Date & Weekday Display */}
+                      <div className="flex items-center gap-1.5 px-3 py-2 bg-bg-base border border-border rounded-xl text-xs font-bold text-text-primary min-w-[120px] justify-between flex-shrink-0">
+                        <span>{formattedDate}</span>
+                        {dowStr && (
+                          <span className="text-[10px] text-accent font-semibold">
+                            {dowStr}
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Optional Day Title (default placeholder) */}
                       <input
-                        type="date"
-                        min={startDate || undefined}
-                        max={endDate || undefined}
-                        value={day.date}
-                        onChange={(e) => updateDay(i, "date", e.target.value)}
-                        className="px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent"
+                        type="text"
+                        value={day.title}
+                        onChange={(e) => updateDayTitle(i, e.target.value)}
+                        placeholder={t("dayDestinationPlaceholder", { num: i + 1 })}
+                        className="flex-1 min-w-[160px] px-3.5 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent placeholder-text-faint"
                       />
-                      {dowStr && (
-                        <span className="text-[11px] font-bold text-text-muted bg-bg-base px-2 py-1 rounded-lg border border-border/60">
-                          {dowStr}
-                        </span>
-                      )}
                     </div>
-
-                    <input
-                      type="text"
-                      value={day.title}
-                      onChange={(e) => updateDay(i, "title", e.target.value)}
-                      placeholder={t("dayDestinationPlaceholder", { num: i + 1 })}
-                      className="flex-1 min-w-[160px] px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent placeholder-text-faint"
-                    />
-
-                    {days.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeDay(i)}
-                        className="p-1.5 rounded-lg text-text-faint hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              onClick={addDay}
-              className="w-full py-2.5 rounded-2xl border border-dashed border-border text-text-muted hover:border-accent hover:text-accent text-sm font-medium flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" /> {t("addDay")}
-            </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Actions */}

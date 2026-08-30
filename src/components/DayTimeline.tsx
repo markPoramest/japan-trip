@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatJPY, formatTHB } from "@/lib/utils";
-import { deleteActivity } from "@/lib/actions";
+import { deleteActivity, updateTripDay } from "@/lib/actions";
 import ActivityFormModal from "./ActivityFormModal";
 import {
   Clock, MapPin, CreditCard, Train, ExternalLink,
-  Plus, Edit2, Trash2, Banknote, DollarSign, AlertCircle,
+  Plus, Edit2, Trash2, Banknote, DollarSign, AlertCircle, Check, X, Loader2,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -45,10 +46,17 @@ export default function DayTimeline({
   availablePasses = [],
   exchangeRate = 0.24,
 }: DayTimelineProps) {
+  const router = useRouter();
   const { t, language } = useLanguage();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Day Title Editing State
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [currentTitle, setCurrentTitle] = useState(dayTitle);
+  const [titleInput, setTitleInput] = useState(dayTitle);
+  const [savingTitle, setSavingTitle] = useState(false);
 
   const totalCost = activities.reduce((sum, a) => sum + (a.cost || 0), 0);
   const icCost = activities.filter((a) => a.isIcCard).reduce((sum, a) => sum + (a.cost || 0), 0);
@@ -62,9 +70,54 @@ export default function DayTimeline({
   async function handleDelete(id: string) {
     if (!confirm(t("deleteConfirm"))) return;
     setDeletingId(id);
-    try { await deleteActivity(id); }
-    catch (e) { console.error(e); alert("Failed to delete"); }
-    finally { setDeletingId(null); }
+    try {
+      await deleteActivity(id);
+      router.refresh();
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  function handleSaveDayTitle(e: React.FormEvent) {
+    e.preventDefault();
+    const newTitle = titleInput.trim();
+    if (!newTitle) return;
+
+    if (newTitle === currentTitle) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    const previousTitle = currentTitle;
+
+    // Instant optimistic update (0ms UI latency)
+    setCurrentTitle(newTitle);
+    setIsEditingTitle(false);
+
+    // Background server update
+    updateTripDay(dayId, tripId, {
+      title: newTitle,
+      dayNumber,
+    })
+      .then((updated) => {
+        if (updated?.slug) {
+          window.history.replaceState(null, "", `/trips/${tripId}/days/${updated.slug}`);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setCurrentTitle(previousTitle);
+        setTitleInput(previousTitle);
+        alert("Failed to update day title.");
+      });
+  }
+
+  function handleCancelDayTitle() {
+    setTitleInput(currentTitle);
+    setIsEditingTitle(false);
   }
 
   return (
@@ -72,18 +125,65 @@ export default function DayTimeline({
       {/* Day Header & Live Stats */}
       <div data-aos="fade-down" className="bg-bg-card border border-border rounded-3xl p-6 shadow-card">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold uppercase tracking-wider">
                 {t("day")} {dayNumber}
               </span>
               <span className="text-sm text-text-muted">{formattedDate}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary tracking-tight">{dayTitle}</h1>
+
+            {/* Title / Inline Title Editor */}
+            {isEditingTitle ? (
+              <form onSubmit={handleSaveDayTitle} className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  autoFocus
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  placeholder={`Day ${dayNumber} destination...`}
+                  className="px-3.5 py-1.5 bg-bg-base border border-accent rounded-xl text-xl sm:text-2xl font-extrabold text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 max-w-md w-full"
+                />
+                <button
+                  type="submit"
+                  disabled={savingTitle}
+                  className="p-2 rounded-xl bg-accent hover:bg-accent-hover text-white transition-all cursor-pointer disabled:opacity-50"
+                  title={t("saveChanges")}
+                >
+                  {savingTitle ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelDayTitle}
+                  className="p-2 rounded-xl bg-bg-surface text-text-muted hover:text-text-primary transition-all cursor-pointer"
+                  title={t("cancel")}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </form>
+            ) : (
+              <div className="flex items-center gap-3 group mt-1">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary tracking-tight truncate">
+                  {currentTitle}
+                </h1>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTitleInput(currentTitle);
+                    setIsEditingTitle(true);
+                  }}
+                  className="p-1.5 rounded-lg text-text-faint hover:text-accent hover:bg-bg-surface transition-colors cursor-pointer"
+                  title={t("editDayTitle")}
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
+
           <button
             onClick={() => { setEditingActivity(null); setModalOpen(true); }}
-            className="self-start md:self-auto px-4 py-2.5 rounded-xl bg-accent hover:bg-accent-light text-white text-sm font-bold shadow-accent flex items-center gap-2 transition-all hover:scale-105 cursor-pointer"
+            className="self-start md:self-auto px-4 py-2.5 rounded-xl bg-accent hover:bg-accent-light text-white text-sm font-bold shadow-accent flex items-center gap-2 transition-all hover:scale-105 cursor-pointer flex-shrink-0"
           >
             <Plus className="w-4 h-4" /> {t("addStopActivity")}
           </button>
@@ -138,80 +238,77 @@ export default function DayTimeline({
                 key={activity.id}
                 data-aos="fade-up"
                 data-aos-delay={(idx % 6) * 60}
-                className="bg-bg-card border border-border rounded-2xl p-5 hover:border-accent/40 hover:shadow-card transition-all group"
+                className="bg-bg-card border border-border rounded-2xl p-4 sm:p-5 hover:border-accent/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-card group"
               >
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  {/* Time badge */}
-                  <div className="flex items-center sm:flex-col sm:items-start gap-2 sm:gap-1 sm:w-24 flex-shrink-0">
-                    <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-lg border border-accent/20">
-                      <Clock className="w-3 h-3" />
-                      {activity.time || "—"}
+                {/* Time & Activity Details */}
+                <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <span className="px-2.5 py-1 rounded-lg bg-bg-surface border border-border text-xs font-mono font-bold text-accent">
+                      {activity.time}
                     </span>
                   </div>
 
-                  {/* Main details */}
-                  <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div className="space-y-1.5 flex-1 min-w-0">
-                      <div className="font-bold text-text-primary text-base flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-accent/70 flex-shrink-0" />
-                        <span className="truncate">{activity.location}</span>
-                      </div>
-
-                      <div className="text-sm text-text-secondary whitespace-pre-line leading-relaxed">
-                        {activity.activity}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 pt-1.5">
-                        {activity.isIcCard ? (
-                          <span className="text-[11px] px-2.5 py-1 rounded-full bg-sage-subtle text-sage border border-sage-muted font-semibold flex items-center gap-1">
-                            <CreditCard className="w-3 h-3" /> {t("icCardOnly")}
-                          </span>
-                        ) : activity.cost > 0 ? (
-                          <span className="text-[11px] px-2.5 py-1 rounded-full bg-sand-subtle text-sand border border-sand-muted font-semibold flex items-center gap-1">
-                            <Banknote className="w-3 h-3" /> {t("cashAndCredit")}
-                          </span>
-                        ) : null}
-
-                        {activity.usingPass && (
-                          <span className="text-[11px] px-2.5 py-1 rounded-full bg-olive-subtle text-olive border border-olive-muted font-semibold flex items-center gap-1">
-                            <Train className="w-3 h-3" /> {activity.usingPass}
-                          </span>
-                        )}
-
-                        {activity.remark && (
-                          <div className="text-xs text-text-muted flex items-center gap-1 bg-bg-surface px-2.5 py-1 rounded-lg border border-border/60">
-                            {linkUrl ? (
-                              <a href={linkUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline flex items-center gap-1">
-                                <span>{activity.remark.replace(linkUrl, "").trim() || t("scheduleOrInfo")}</span>
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            ) : (
-                              <span>{activity.remark}</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-border/60">
-                      {activity.cost > 0 ? (
-                        <div className="text-right">
-                          <span className="text-base font-extrabold text-text-primary font-mono block">{formatJPY(activity.cost)}</span>
-                          <span className="text-[10px] text-text-muted font-mono block">≈ {formatTHB(activity.cost * exchangeRate)}</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-text-faint">{t("freeOrPass")}</span>
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-text-primary text-sm sm:text-base">{activity.location}</span>
+                      {activity.usingPass && (
+                        <span className="px-2 py-0.5 rounded-full bg-olive-subtle border border-olive-muted text-olive text-[11px] font-medium flex items-center gap-1">
+                          <Train className="w-3 h-3" /> {activity.usingPass}
+                        </span>
                       )}
-
-                      <div className="flex items-center space-x-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setEditingActivity(activity); setModalOpen(true); }} className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer" title={t("editStopActivity")}>
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(activity.id)} disabled={deletingId === activity.id} className="p-1.5 rounded-lg text-text-muted hover:text-accent hover:bg-accent-muted transition-colors cursor-pointer">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
                     </div>
+                    <p className="text-xs text-text-secondary leading-relaxed">{activity.activity}</p>
+                    {activity.remark && (
+                      <div className="text-[11px] text-text-muted flex items-center gap-1 pt-0.5">
+                        {linkUrl ? (
+                          <a
+                            href={linkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-accent hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3" /> {activity.remark}
+                          </a>
+                        ) : (
+                          <span>{activity.remark}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Cost & Action Controls */}
+                <div className="flex items-center justify-between sm:justify-end gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-border/60">
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 font-bold text-sm font-mono text-text-primary">
+                      {activity.isIcCard && (
+                        <span title="Paid with IC Card">
+                          <CreditCard className="w-3.5 h-3.5 text-sage" />
+                        </span>
+                      )}
+                      <span>{formatJPY(activity.cost || 0)}</span>
+                    </div>
+                    <div className="text-[10px] text-text-muted font-mono">
+                      ≈ {formatTHB((activity.cost || 0) * exchangeRate)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => { setEditingActivity(activity); setModalOpen(true); }}
+                      className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer"
+                      title={t("editStopActivity")}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(activity.id)}
+                      disabled={deletingId === activity.id}
+                      className="p-2 rounded-xl text-text-muted hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
+                      title={t("deleteTrip")}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -220,13 +317,14 @@ export default function DayTimeline({
         )}
       </div>
 
+      {/* Activity Add/Edit Modal */}
       <ActivityFormModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         dayId={dayId}
         exchangeRate={exchangeRate}
-        availablePasses={availablePasses}
         activity={editingActivity}
+        availablePasses={availablePasses}
       />
     </div>
   );

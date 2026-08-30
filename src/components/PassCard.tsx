@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatJPY, formatTHB } from "@/lib/utils";
 import { Train, Plane, Ticket, Plus, Edit2, Trash2 } from "lucide-react";
 import { deleteFlight, deletePass } from "@/lib/actions";
@@ -36,6 +37,7 @@ export default function PassCard({
   flights: FlightBooking[];
   exchangeRate: number;
 }) {
+  const router = useRouter();
   const { t } = useLanguage();
   const [flightModalOpen, setFlightModalOpen] = useState(false);
   const [editingFlight, setEditingFlight] = useState<FlightBooking | null>(null);
@@ -53,6 +55,7 @@ export default function PassCard({
     setDeletingId(id);
     try {
       await deleteFlight(id, tripId);
+      router.refresh();
     } catch (err) {
       console.error(err);
       alert("Failed to delete flight");
@@ -67,6 +70,7 @@ export default function PassCard({
     setDeletingId(id);
     try {
       await deletePass(id, tripId);
+      router.refresh();
     } catch (err) {
       console.error(err);
       alert("Failed to delete pass");

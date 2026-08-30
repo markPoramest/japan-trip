@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatJPY, formatTHB } from "@/lib/utils";
 import { Wallet, CreditCard, Banknote, Landmark, Edit3, Plus } from "lucide-react";
 import EditBudgetModal from "@/components/EditBudgetModal";
 import { useLanguage } from "@/context/LanguageContext";
-import { useCurrency } from "@/context/CurrencyContext";
 
 interface BudgetWallet {
   id: string;
@@ -26,16 +25,27 @@ export default function BudgetBreakdown({
   totalNonIcSpentJpy?: number;
   exchangeRate?: number;
 }) {
-  const { t } = useLanguage();
-  const { formatFromJpy } = useCurrency();
+  const { t, language } = useLanguage();
   const [modalOpen, setModalOpen] = useState(false);
+  const [localBudgets, setLocalBudgets] = useState<BudgetWallet[]>(budgets);
 
-  const totalJpy = budgets.reduce((s, b) => s + (b.amountJpy || 0), 0);
-  const totalCost = formatFromJpy(totalJpy, exchangeRate);
+  useEffect(() => {
+    setLocalBudgets(budgets);
+  }, [budgets]);
+
+  const rate = exchangeRate > 0 ? exchangeRate : 0.24;
+  const currentBudgets = localBudgets && localBudgets.length > 0 ? localBudgets : budgets;
+
+  const totalJpy = currentBudgets.reduce((s, b) => {
+    const val = b.amountJpy > 0 ? b.amountJpy : rate > 0 ? b.amountThb / rate : 0;
+    return s + (val || 0);
+  }, 0);
+  const totalThb = totalJpy * rate;
 
   const getIcon = (cat: string) => {
-    if (cat.toLowerCase().includes("ic card")) return <CreditCard className="w-5 h-5 text-sage" />;
-    if (cat.toLowerCase().includes("cash") || cat.includes("เงินสด")) return <Banknote className="w-5 h-5 text-olive" />;
+    const lower = (cat || "").toLowerCase();
+    if (lower.includes("ic card") || lower.includes("suica") || lower.includes("pasmo")) return <CreditCard className="w-5 h-5 text-sage" />;
+    if (lower.includes("cash") || lower.includes("เงินสด")) return <Banknote className="w-5 h-5 text-olive" />;
     return <Landmark className="w-5 h-5 text-sand" />;
   };
 
@@ -56,7 +66,7 @@ export default function BudgetBreakdown({
                   className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-bg-surface hover:bg-accent hover:text-white border border-border text-text-muted hover:text-white text-[11px] font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   <Edit3 className="w-3 h-3" />
-                  <span>{budgets.length > 0 ? t("editBudget") : t("addWallet")}</span>
+                  <span>{currentBudgets.length > 0 ? t("editBudget") : t("addWallet")}</span>
                 </button>
               )}
             </div>
@@ -64,16 +74,16 @@ export default function BudgetBreakdown({
           </div>
         </div>
 
-        {budgets.length > 0 && (
+        {currentBudgets.length > 0 && (
           <div className="text-right">
             <div className="text-xs text-text-muted uppercase font-semibold">{t("totalPocketBudget")}</div>
-            <div className="text-lg font-bold text-text-primary font-mono">{totalCost.primary}</div>
-            <div className="text-[11px] text-text-muted font-mono">{totalCost.secondary}</div>
+            <div className="text-lg font-bold text-text-primary font-mono">{formatJPY(totalJpy)}</div>
+            <div className="text-[11px] text-text-muted font-mono">≈ {formatTHB(totalThb)}</div>
           </div>
         )}
       </div>
 
-      {budgets.length === 0 ? (
+      {currentBudgets.length === 0 ? (
         <div className="bg-bg-surface/50 border border-dashed border-border rounded-2xl p-6 text-center text-text-muted text-xs">
           <p className="font-semibold text-text-secondary">{t("noBudgetsTitle")}</p>
           <p className="text-text-muted mt-1">{t("noBudgetsSubtitle")}</p>
@@ -90,8 +100,9 @@ export default function BudgetBreakdown({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {budgets.map((b) => {
-            const costPair = formatFromJpy(b.amountJpy, exchangeRate);
+          {currentBudgets.map((b) => {
+            const jpyVal = b.amountJpy > 0 ? b.amountJpy : rate > 0 ? b.amountThb / rate : 0;
+            const thbVal = b.amountThb > 0 ? b.amountThb : jpyVal * rate;
             return (
               <div
                 key={b.id}
@@ -104,11 +115,18 @@ export default function BudgetBreakdown({
                   {getIcon(b.category)}
                   <div>
                     <span className="font-bold text-text-primary text-sm block">{b.category}</span>
-                    <span className="text-[11px] text-text-muted font-mono">{costPair.secondary}</span>
+                    <span className="text-[11px] text-text-muted font-mono">
+                      {formatJPY(jpyVal)} ≈ {formatTHB(thbVal)}
+                    </span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-mono font-bold text-text-primary block">{costPair.primary}</span>
+                  <span className="text-base font-mono font-extrabold text-text-primary block">
+                    {formatJPY(jpyVal)}
+                  </span>
+                  <span className="text-[11px] font-mono text-accent font-semibold">
+                    ≈ {formatTHB(thbVal)}
+                  </span>
                 </div>
               </div>
             );
@@ -121,8 +139,9 @@ export default function BudgetBreakdown({
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           tripId={tripId}
-          exchangeRate={exchangeRate}
-          budgets={budgets}
+          exchangeRate={rate}
+          budgets={currentBudgets}
+          onBudgetsChange={(updated) => setLocalBudgets(updated)}
         />
       )}
     </div>
