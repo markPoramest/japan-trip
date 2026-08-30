@@ -38,9 +38,13 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# local env files
-.env*.local
+# local env & secret credential files
 .env
+.env.*
+!.env.example
+*.env
+credentials*.json
+client_secret*.json
 
 # vercel
 .vercel
