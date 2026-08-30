@@ -102,7 +102,7 @@ export default function TripOverviewClient({ trip }: { trip: TripData }) {
           <img
             src="/logo.png"
             alt="Japan Trip Planner"
-            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover shadow-lg border-2 border-accent/40 opacity-80 hover:opacity-100 transition-opacity"
+            className="w-28 h-28 sm:w-36 sm:h-36 object-contain drop-shadow-lg opacity-90 hover:opacity-100 transition-opacity"
           />
         </div>
       </div>

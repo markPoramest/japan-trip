@@ -141,7 +141,7 @@ export default function NewTripPage() {
               <img
                 src="/logo.png"
                 alt="Japan Trip Planner"
-                className="w-8 h-8 rounded-full object-cover shadow-sm border border-accent/40"
+                className="w-9 h-9 object-contain drop-shadow-sm"
               />
               <span className="text-sm font-bold text-text-primary">{t("planNewTrip")}</span>
             </div>

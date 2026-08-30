@@ -88,7 +88,7 @@ export default function TripsListClient({ trips }: { trips: TripItem[] }) {
             <img
               src="/logo.png"
               alt="Logo"
-              className="w-10 h-10 rounded-full object-cover shadow-sm border border-accent/40 flex-shrink-0 group-hover:scale-105 transition-transform"
+              className="w-11 h-11 object-contain flex-shrink-0 group-hover:scale-105 transition-transform drop-shadow-sm"
             />
           </div>
 
@@ -159,7 +159,7 @@ export default function TripsListClient({ trips }: { trips: TripItem[] }) {
             <img
               src="/logo.png"
               alt="Japan Trip Planner"
-              className="w-10 h-10 rounded-full object-cover shadow-sm border border-accent/40"
+              className="w-10 h-10 object-contain drop-shadow-sm"
             />
             <div>
               <span className="text-base font-bold text-text-primary">{t("appTitle")}</span>
@@ -197,7 +197,7 @@ export default function TripsListClient({ trips }: { trips: TripItem[] }) {
             <img
               src="/logo.png"
               alt="Japan Trip Planner Logo"
-              className="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover shadow-lg border-2 border-accent/40 flex-shrink-0 self-center md:self-auto hover:scale-105 transition-transform"
+              className="w-32 h-32 sm:w-40 sm:h-40 object-contain drop-shadow-lg flex-shrink-0 self-center md:self-auto hover:scale-105 transition-transform"
             />
           </div>
         </div>

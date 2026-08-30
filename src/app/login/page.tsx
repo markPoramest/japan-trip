@@ -36,7 +36,7 @@ export default function LoginPage() {
             <img
               src="/logo.png"
               alt="Japan Trip Planner"
-              className="w-10 h-10 rounded-full object-cover shadow-sm border border-accent/40"
+              className="w-10 h-10 object-contain drop-shadow-sm"
             />
             <div>
               <span className="text-base font-bold text-text-primary">{t("appTitle")}</span>
@@ -107,11 +107,11 @@ export default function LoginPage() {
         {/* Right column: Google Sign In Card */}
         <div className="w-full lg:w-[400px] flex-shrink-0" data-aos="fade-left">
           <div className="bg-bg-card border-2 border-accent/40 rounded-3xl p-8 shadow-earth space-y-6 relative overflow-hidden">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-3">
               <img
                 src="/logo.png"
                 alt="Japan Trip Planner Logo"
-                className="w-20 h-20 rounded-full object-cover mx-auto shadow-md border-2 border-accent/40"
+                className="w-28 h-28 sm:w-32 sm:h-32 object-contain mx-auto drop-shadow-md hover:scale-105 transition-transform"
               />
               <h2 className="text-2xl font-extrabold text-text-primary">
                 {language === "th" ? "เข้าสู่ระบบ" : "Sign In"}

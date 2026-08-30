@@ -166,7 +166,7 @@ export default function NavbarClient({
             <img
               src="/logo.png"
               alt="Japan Trip Planner"
-              className="w-9 h-9 rounded-full object-cover shadow-sm border border-accent/40 group-hover:scale-105 transition-transform flex-shrink-0"
+              className="w-10 h-10 object-contain group-hover:scale-105 transition-transform flex-shrink-0 drop-shadow-sm"
             />
             <div className="min-w-0">
               <div className="text-sm font-bold text-text-primary group-hover:text-accent transition-colors truncate">
