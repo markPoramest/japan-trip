@@ -22,16 +22,30 @@ interface PassEntry {
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+function formatLocalDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(s: string): Date | null {
+  if (!s) return null;
+  const parts = s.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
 function getDaysInRange(start: string, end: string): string[] {
   if (!start || !end) return [];
-  const s = new Date(start + "T00:00:00");
-  const e = new Date(end + "T00:00:00");
-  if (isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) return [];
+  const s = parseLocalDate(start);
+  const e = parseLocalDate(end);
+  if (!s || !e || isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) return [];
 
   const dates: string[] = [];
-  const cur = new Date(s);
+  const cur = new Date(s.getFullYear(), s.getMonth(), s.getDate());
   while (cur <= e) {
-    dates.push(cur.toISOString().split("T")[0]);
+    dates.push(formatLocalDate(cur));
     cur.setDate(cur.getDate() + 1);
   }
   return dates;
@@ -47,18 +61,17 @@ export default function NewTripPage() {
   const [endDate, setEndDate] = useState("");
   const [description, setDescription] = useState("");
   const [exchangeRate, setExchangeRate] = useState("0.24");
-  const [currency, setCurrency] = useState("JPY");
-  const [baseCurrency, setBaseCurrency] = useState("THB");
+  const currency = "JPY";
+  const baseCurrency = "THB";
   const [days, setDays] = useState<DayEntry[]>([{ date: "", title: "" }]);
   const [passes, setPasses] = useState<PassEntry[]>([]);
 
   // Calculate duration in days & nights
-  const isValidRange = startDate && endDate && new Date(endDate + "T00:00:00") >= new Date(startDate + "T00:00:00");
-  const durationDays = isValidRange
-    ? Math.round(
-        (new Date(endDate + "T00:00:00").getTime() - new Date(startDate + "T00:00:00").getTime()) /
-          (1000 * 60 * 60 * 24)
-      ) + 1
+  const isValidRange = startDate && endDate && endDate >= startDate;
+  const sDateObj = parseLocalDate(startDate);
+  const eDateObj = parseLocalDate(endDate);
+  const durationDays = isValidRange && sDateObj && eDateObj
+    ? Math.round((eDateObj.getTime() - sDateObj.getTime()) / (1000 * 60 * 60 * 24)) + 1
     : 0;
   const durationNights = Math.max(0, durationDays - 1);
 
@@ -81,9 +94,8 @@ export default function NewTripPage() {
   function handleStartDateChange(newStart: string) {
     setStartDate(newStart);
 
-    // If endDate is empty or before newStart, auto-set endDate = newStart
     let targetEnd = endDate;
-    if (!endDate || new Date(endDate + "T00:00:00") < new Date(newStart + "T00:00:00")) {
+    if (!endDate || endDate < newStart) {
       targetEnd = newStart;
       setEndDate(newStart);
     }
@@ -94,8 +106,7 @@ export default function NewTripPage() {
   }
 
   function handleEndDateChange(newEnd: string) {
-    if (startDate && new Date(newEnd + "T00:00:00") < new Date(startDate + "T00:00:00")) {
-      // Prevent end date before start date
+    if (startDate && newEnd < startDate) {
       setEndDate(startDate);
       syncDaysFromRange(startDate, startDate);
       return;
@@ -110,12 +121,13 @@ export default function NewTripPage() {
   function addDay() {
     let nextDate = "";
     if (days.length > 0 && days[days.length - 1].date) {
-      const lastDate = new Date(days[days.length - 1].date + "T00:00:00");
-      lastDate.setDate(lastDate.getDate() + 1);
-      const nextDateStr = lastDate.toISOString().split("T")[0];
-      // Only set if within or equal to endDate
-      if (!endDate || nextDateStr <= endDate) {
-        nextDate = nextDateStr;
+      const lastDate = parseLocalDate(days[days.length - 1].date);
+      if (lastDate) {
+        lastDate.setDate(lastDate.getDate() + 1);
+        const nextDateStr = formatLocalDate(lastDate);
+        if (!endDate || nextDateStr <= endDate) {
+          nextDate = nextDateStr;
+        }
       }
     } else if (startDate) {
       nextDate = startDate;
@@ -129,7 +141,6 @@ export default function NewTripPage() {
   }
 
   function updateDay(i: number, field: keyof DayEntry, value: string) {
-    // If updating date, validate within range
     if (field === "date" && value) {
       if (startDate && value < startDate) {
         alert(t("scheduleMustBeWithinTrip", { start: startDate, end: endDate || startDate }));
@@ -170,7 +181,7 @@ export default function NewTripPage() {
     e.preventDefault();
     if (!title || !startDate || !endDate) return;
 
-    if (new Date(endDate + "T00:00:00") < new Date(startDate + "T00:00:00")) {
+    if (endDate < startDate) {
       alert(t("dateRangeError"));
       return;
     }
@@ -192,7 +203,7 @@ export default function NewTripPage() {
       const validDays = days.filter((d) => d.date && d.title);
       for (let i = 0; i < validDays.length; i++) {
         const d = validDays[i];
-        const dateObj = new Date(d.date + "T00:00:00");
+        const dateObj = parseLocalDate(d.date) || new Date();
         await createTripDay({
           tripId: trip.id,
           dayNumber: i + 1,
@@ -447,7 +458,7 @@ export default function NewTripPage() {
 
             <div className="space-y-3">
               {days.map((day, i) => {
-                const dayDateObj = day.date ? new Date(day.date + "T00:00:00") : null;
+                const dayDateObj = day.date ? parseLocalDate(day.date) : null;
                 const dowStr = dayDateObj && !isNaN(dayDateObj.getTime()) ? DOW[dayDateObj.getDay()] : "";
 
                 return (
