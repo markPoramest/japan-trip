@@ -7,12 +7,12 @@
 
 An interactive, responsive web application for planning Japan travel itineraries, tracking daily transit and IC card expenses, managing hotel/flight/rail pass bookings, and auto-calculating budgets with live **JPY (¥) ⇄ THB (฿)** currency conversions.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-mark--no--nihon--tabi.vercel.app-ff6b6b?style=for-the-badge&logo=vercel)](https://mark-no-nihon-tabi.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-mark--no--nihon--tabi.vercel.app-ff6b6b?style=for-the-badge&logo=vercel)](https://japantripplanner.vercel.app)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![Vercel Postgres](https://img.shields.io/badge/Database-Vercel_Postgres-00e599?style=for-the-badge&logo=postgresql)](https://vercel.com/storage/postgres)
 [![Google OAuth](https://img.shields.io/badge/Auth-Google_OAuth-4285f4?style=for-the-badge&logo=google)](https://next-auth.js.org)
 
-🌐 **Production Website**: **[https://mark-no-nihon-tabi.vercel.app](https://mark-no-nihon-tabi.vercel.app)**
+🌐 **Production Website**: **[https://japantripplanner.vercel.app](https://japantripplanner.vercel.app)**
 
 </div>
 
