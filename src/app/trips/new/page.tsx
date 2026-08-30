@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createTrip, createTripDay, createPass } from "@/lib/actions";
-import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train } from "lucide-react";
+import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import SettingsKebab from "@/components/SettingsKebab";
 import { useLanguage } from "@/context/LanguageContext";
@@ -21,10 +21,25 @@ interface PassEntry {
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+function getDaysInRange(start: string, end: string): string[] {
+  if (!start || !end) return [];
+  const s = new Date(start + "T00:00:00");
+  const e = new Date(end + "T00:00:00");
+  if (isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) return [];
+
+  const dates: string[] = [];
+  const cur = new Date(s);
+  while (cur <= e) {
+    dates.push(cur.toISOString().split("T")[0]);
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
+}
+
 export default function NewTripPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -36,8 +51,76 @@ export default function NewTripPage() {
   const [days, setDays] = useState<DayEntry[]>([{ date: "", title: "" }]);
   const [passes, setPasses] = useState<PassEntry[]>([]);
 
+  // Calculate duration in days & nights
+  const isValidRange = startDate && endDate && new Date(endDate + "T00:00:00") >= new Date(startDate + "T00:00:00");
+  const durationDays = isValidRange
+    ? Math.round(
+        (new Date(endDate + "T00:00:00").getTime() - new Date(startDate + "T00:00:00").getTime()) /
+          (1000 * 60 * 60 * 24)
+      ) + 1
+    : 0;
+  const durationNights = Math.max(0, durationDays - 1);
+
+  // Sync days when date range changes
+  function syncDaysFromRange(newStart: string, newEnd: string) {
+    const dates = getDaysInRange(newStart, newEnd);
+    if (dates.length === 0) return;
+
+    setDays((prev) => {
+      return dates.map((dateStr, idx) => {
+        const existingTitle = prev[idx]?.title || "";
+        return {
+          date: dateStr,
+          title: existingTitle,
+        };
+      });
+    });
+  }
+
+  function handleStartDateChange(newStart: string) {
+    setStartDate(newStart);
+
+    // If endDate is empty or before newStart, auto-set endDate = newStart
+    let targetEnd = endDate;
+    if (!endDate || new Date(endDate + "T00:00:00") < new Date(newStart + "T00:00:00")) {
+      targetEnd = newStart;
+      setEndDate(newStart);
+    }
+
+    if (newStart && targetEnd) {
+      syncDaysFromRange(newStart, targetEnd);
+    }
+  }
+
+  function handleEndDateChange(newEnd: string) {
+    if (startDate && new Date(newEnd + "T00:00:00") < new Date(startDate + "T00:00:00")) {
+      // Prevent end date before start date
+      setEndDate(startDate);
+      syncDaysFromRange(startDate, startDate);
+      return;
+    }
+
+    setEndDate(newEnd);
+    if (startDate && newEnd) {
+      syncDaysFromRange(startDate, newEnd);
+    }
+  }
+
   function addDay() {
-    setDays((prev) => [...prev, { date: "", title: "" }]);
+    let nextDate = "";
+    if (days.length > 0 && days[days.length - 1].date) {
+      const lastDate = new Date(days[days.length - 1].date + "T00:00:00");
+      lastDate.setDate(lastDate.getDate() + 1);
+      const nextDateStr = lastDate.toISOString().split("T")[0];
+      // Only set if within or equal to endDate
+      if (!endDate || nextDateStr <= endDate) {
+        nextDate = nextDateStr;
+      }
+    } else if (startDate) {
+      nextDate = startDate;
+    }
+
+    setDays((prev) => [...prev, { date: nextDate, title: "" }]);
   }
 
   function removeDay(i: number) {
@@ -45,6 +128,18 @@ export default function NewTripPage() {
   }
 
   function updateDay(i: number, field: keyof DayEntry, value: string) {
+    // If updating date, validate within range
+    if (field === "date" && value) {
+      if (startDate && value < startDate) {
+        alert(t("scheduleMustBeWithinTrip", { start: startDate, end: endDate || startDate }));
+        return;
+      }
+      if (endDate && value > endDate) {
+        alert(t("scheduleMustBeWithinTrip", { start: startDate, end: endDate }));
+        return;
+      }
+    }
+
     setDays((prev) => prev.map((d, idx) => (idx === i ? { ...d, [field]: value } : d)));
   }
 
@@ -73,6 +168,12 @@ export default function NewTripPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title || !startDate || !endDate) return;
+
+    if (new Date(endDate + "T00:00:00") < new Date(startDate + "T00:00:00")) {
+      alert(t("dateRangeError"));
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -90,7 +191,7 @@ export default function NewTripPage() {
       const validDays = days.filter((d) => d.date && d.title);
       for (let i = 0; i < validDays.length; i++) {
         const d = validDays[i];
-        const dateObj = new Date(d.date);
+        const dateObj = new Date(d.date + "T00:00:00");
         await createTripDay({
           tripId: trip.id,
           dayNumber: i + 1,
@@ -155,12 +256,12 @@ export default function NewTripPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-wider mb-3">
             <Globe className="w-3.5 h-3.5" /> {t("newTripBadge")}
           </div>
-          <h1 className="text-3xl font-extrabold text-text-primary">{t("planNewJapanTrip")}</h1>
-          <p className="text-text-muted mt-1.5">{t("newTripSubtitle")}</p>
+          <h1 className="text-3xl font-extrabold text-text-primary tracking-tight">{t("planNewTrip")}</h1>
+          <p className="text-text-secondary text-sm mt-1">{t("newTripSubtitle")}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Trip Basics */}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Trip Info Card */}
           <div className="bg-bg-card border border-border rounded-3xl p-6 shadow-card space-y-5">
             <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
               <MapPin className="w-4 h-4 text-accent" /> {t("tripDetails")}
@@ -173,7 +274,7 @@ export default function NewTripPage() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Kyoto & Osaka Spring 2027"
+                placeholder="e.g. Kyoto & Osaka Autumn 2026"
                 className={inputClass}
               />
             </div>
@@ -189,27 +290,59 @@ export default function NewTripPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>{t("startDateRequired")}</label>
-                <input
-                  required
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className={inputClass}
-                />
+            {/* Date Range Selector with Visual Duration & Min-Constraint */}
+            <div className="space-y-3 pt-2">
+              <label className={labelClass}>{t("dateRangeSelected")}</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <span className="block text-[11px] text-text-muted mb-1 font-semibold">{t("startDateRequired")}</span>
+                  <input
+                    required
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <span className="block text-[11px] text-text-muted mb-1 font-semibold">{t("endDateRequired")}</span>
+                  <input
+                    required
+                    type="date"
+                    min={startDate || undefined}
+                    value={endDate}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
               </div>
-              <div>
-                <label className={labelClass}>{t("endDateRequired")}</label>
-                <input
-                  required
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
+
+              {/* Dynamic Range Preview Banner */}
+              {isValidRange && (
+                <div className="p-3.5 rounded-2xl bg-accent/10 border border-accent/30 flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-accent">
+                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                    <span>
+                      {durationDays} {t("days")} / {durationNights} {t("nights")}
+                    </span>
+                  </div>
+                  <span className="text-text-muted font-mono text-[11px]">
+                    {new Date(startDate + "T00:00:00").toLocaleDateString(language === "th" ? "th-TH" : "en-US", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}{" "}
+                    ➔{" "}
+                    {new Date(endDate + "T00:00:00").toLocaleDateString(language === "th" ? "th-TH" : "en-US", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -240,15 +373,13 @@ export default function NewTripPage() {
             </div>
           </div>
 
-          {/* Rail Passes Setup */}
+          {/* Rail Passes */}
           <div className="bg-bg-card border border-border rounded-3xl p-6 shadow-card space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
                 <Train className="w-4 h-4 text-olive" /> {t("railPassesSetup")}
               </h2>
-              <span className="text-xs text-text-muted">
-                {passes.length} {passes.length === 1 ? "pass" : "passes"}
-              </span>
+              <span className="text-xs text-text-muted">{t("optional")}</span>
             </div>
 
             <div className="space-y-3">
@@ -266,19 +397,19 @@ export default function NewTripPage() {
                     value={pass.costJpy}
                     onChange={(e) => updatePass(i, "costJpy", e.target.value)}
                     placeholder={t("passCostJpy")}
-                    className="w-32 px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent font-mono"
+                    className="w-28 px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent"
                   />
                   <input
                     type="number"
                     value={pass.validDays}
                     onChange={(e) => updatePass(i, "validDays", e.target.value)}
                     placeholder={t("validDays")}
-                    className="w-24 px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent"
+                    className="w-20 px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent"
                   />
                   <button
                     type="button"
                     onClick={() => removePass(i)}
-                    className="p-1.5 rounded-lg text-text-faint hover:text-red-400 hover:bg-red-950/30 transition-colors"
+                    className="p-1.5 rounded-lg text-text-faint hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -295,47 +426,77 @@ export default function NewTripPage() {
             </button>
           </div>
 
-          {/* Days Setup */}
+          {/* Days Setup with Date Range Constraints */}
           <div className="bg-bg-card border border-border rounded-3xl p-6 shadow-card space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-accent" /> {t("dailySchedule")}
               </h2>
-              <span className="text-xs text-text-muted">
-                {days.length} {t("days")} {t("daysCountHint")}
-              </span>
+              <div className="flex items-center gap-3">
+                {startDate && endDate && (
+                  <button
+                    type="button"
+                    onClick={() => syncDaysFromRange(startDate, endDate)}
+                    className="text-xs text-accent hover:text-accent-hover font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                    title={t("autoGenerateDays")}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>{t("autoGenerateDays")}</span>
+                  </button>
+                )}
+                <span className="text-xs text-text-muted">
+                  {days.length} {t("days")}
+                </span>
+              </div>
             </div>
 
             <div className="space-y-3">
-              {days.map((day, i) => (
-                <div key={i} className="flex items-center gap-3 bg-bg-surface rounded-2xl p-3 border border-border/60">
-                  <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 text-accent text-xs font-bold flex items-center justify-center flex-shrink-0">
-                    {i + 1}
+              {days.map((day, i) => {
+                const dayDateObj = day.date ? new Date(day.date + "T00:00:00") : null;
+                const dowStr = dayDateObj && !isNaN(dayDateObj.getTime()) ? DOW[dayDateObj.getDay()] : "";
+
+                return (
+                  <div key={i} className="flex items-center gap-3 bg-bg-surface rounded-2xl p-3 border border-border/60 flex-wrap sm:flex-nowrap">
+                    <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 text-accent text-xs font-bold flex items-center justify-center flex-shrink-0">
+                      {i + 1}
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <input
+                        type="date"
+                        min={startDate || undefined}
+                        max={endDate || undefined}
+                        value={day.date}
+                        onChange={(e) => updateDay(i, "date", e.target.value)}
+                        className="px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent"
+                      />
+                      {dowStr && (
+                        <span className="text-[11px] font-bold text-text-muted bg-bg-base px-2 py-1 rounded-lg border border-border/60">
+                          {dowStr}
+                        </span>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      value={day.title}
+                      onChange={(e) => updateDay(i, "title", e.target.value)}
+                      placeholder={t("dayDestinationPlaceholder", { num: i + 1 })}
+                      className="flex-1 min-w-[160px] px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent placeholder-text-faint"
+                    />
+
+                    {days.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeDay(i)}
+                        className="p-1.5 rounded-lg text-text-faint hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  <input
-                    type="date"
-                    value={day.date}
-                    onChange={(e) => updateDay(i, "date", e.target.value)}
-                    className="flex-shrink-0 px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent"
-                  />
-                  <input
-                    type="text"
-                    value={day.title}
-                    onChange={(e) => updateDay(i, "title", e.target.value)}
-                    placeholder={t("dayDestinationPlaceholder", { num: i + 1 })}
-                    className="flex-1 px-3 py-2 bg-bg-base border border-border rounded-xl text-text-primary text-xs focus:outline-none focus:border-accent placeholder-text-faint"
-                  />
-                  {days.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeDay(i)}
-                      className="p-1.5 rounded-lg text-text-faint hover:text-red-400 hover:bg-red-950/30 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <button
@@ -357,8 +518,8 @@ export default function NewTripPage() {
             </Link>
             <button
               type="submit"
-              disabled={loading}
-              className="px-7 py-2.5 rounded-xl bg-accent hover:bg-accent-light text-white text-sm font-bold shadow-accent transition-all hover:scale-105 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              disabled={loading || !isValidRange}
+              className="px-7 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-bold shadow-accent transition-all hover:scale-105 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? t("creating") : t("createTrip")}
             </button>
