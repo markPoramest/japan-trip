@@ -1,9 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import DayTimeline from "@/components/DayTimeline";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { getAuthSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,11 @@ interface Props {
 }
 
 export default async function DayPage({ params }: Props) {
+  const session = await getAuthSession();
+  const userId = (session?.user as any)?.id;
+
+  if (!userId) redirect("/login");
+
   const day = await db.tripDay.findFirst({
     where: { slug: params.slug, tripId: params.tripId },
     include: {
@@ -26,6 +32,7 @@ export default async function DayPage({ params }: Props) {
   });
 
   if (!day) notFound();
+  if (day.trip.userId && day.trip.userId !== userId) notFound();
 
   const allDays = day.trip.days;
   const currentIndex = allDays.findIndex((d) => d.id === day.id);

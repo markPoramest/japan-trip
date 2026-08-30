@@ -1,7 +1,8 @@
 import Navbar from "@/components/Navbar";
 import SummaryClient from "@/components/SummaryClient";
 import { db } from "@/lib/db";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getAuthSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,11 @@ interface Props {
 }
 
 export default async function SummaryPage({ params }: Props) {
+  const session = await getAuthSession();
+  const userId = (session?.user as any)?.id;
+
+  if (!userId) redirect("/login");
+
   const trip = await db.trip.findUnique({
     where: { id: params.tripId },
     include: {
@@ -25,6 +31,7 @@ export default async function SummaryPage({ params }: Props) {
   });
 
   if (!trip) notFound();
+  if (trip.userId && trip.userId !== userId) notFound();
 
   const dayRows = trip.days.map((day) => {
     const total = day.activities.reduce((s, a) => s + (a.cost || 0), 0);

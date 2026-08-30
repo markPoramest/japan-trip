@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import ExportItineraryView from "@/components/ExportItineraryView";
+import { getAuthSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,11 @@ interface Props {
 }
 
 export default async function ExportPage({ params }: Props) {
+  const session = await getAuthSession();
+  const userId = (session?.user as any)?.id;
+
+  if (!userId) redirect("/login");
+
   const trip = await db.trip.findUnique({
     where: { id: params.tripId },
     include: {
@@ -25,6 +31,7 @@ export default async function ExportPage({ params }: Props) {
   });
 
   if (!trip) notFound();
+  if (trip.userId && trip.userId !== userId) notFound();
 
   const exportData = {
     id: trip.id,

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
+import AuthProvider from "@/context/SessionProvider";
 import NavigationProgressBar from "@/components/NavigationProgressBar";
 import AosProvider from "@/components/AosProvider";
 
@@ -40,13 +41,15 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-screen bg-bg-base text-text-primary antialiased">
-        <Suspense fallback={null}>
-          <NavigationProgressBar />
-        </Suspense>
-        <AosProvider />
-        <LanguageProvider>
-          {children}
-        </LanguageProvider>
+        <AuthProvider>
+          <Suspense fallback={null}>
+            <NavigationProgressBar />
+          </Suspense>
+          <AosProvider />
+          <LanguageProvider>
+            {children}
+          </LanguageProvider>
+        </AuthProvider>
       </body>
     </html>
   );

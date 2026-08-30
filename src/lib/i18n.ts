@@ -167,7 +167,7 @@ export const translations = {
     creating: "Creating...",
     createTrip: "Create Trip",
 
-    // Settings Kebab
+    // Settings Kebab & Auth
     settings: "Settings",
     appearance: "Appearance",
     lightMode: "Light Mode",
@@ -175,6 +175,10 @@ export const translations = {
     language: "Language",
     english: "English (EN)",
     thai: "ภาษาไทย (TH)",
+    signIn: "Sign In",
+    signOut: "Sign Out",
+    signedInAs: "Signed in as",
+    accountProfile: "Account Profile",
 
     // Export PDF / Print Itinerary
     exportPdf: "Export PDF / Print",
@@ -358,7 +362,7 @@ export const translations = {
     creating: "กำลังสร้าง...",
     createTrip: "บันทึกและสร้างทริป",
 
-    // Settings Kebab
+    // Settings Kebab & Auth
     settings: "การตั้งค่า",
     appearance: "ธีมแสดงผล",
     lightMode: "โหมดสว่าง",
@@ -366,6 +370,10 @@ export const translations = {
     language: "ภาษา",
     english: "English (EN)",
     thai: "ภาษาไทย (TH)",
+    signIn: "เข้าสู่ระบบ",
+    signOut: "ออกจากระบบ",
+    signedInAs: "เข้าสู่ระบบในชื่อ",
+    accountProfile: "โปรไฟล์บัญชี",
 
     // Export PDF / Print Itinerary
     exportPdf: "พิมพ์เอกสาร / PDF",

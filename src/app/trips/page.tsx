@@ -1,10 +1,26 @@
 import { db } from "@/lib/db";
 import TripsListClient from "@/components/TripsListClient";
+import { getAuthSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function TripsPage() {
+  const session = await getAuthSession();
+  const userId = (session?.user as any)?.id;
+
+  if (!userId) {
+    redirect("/login");
+  }
+
+  // Claim any existing unassigned trips for the user
+  await db.trip.updateMany({
+    where: { userId: null },
+    data: { userId },
+  });
+
   const rawTrips = await db.trip.findMany({
+    where: { userId },
     include: {
       days: {
         include: { activities: true },

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MoreVertical, Sun, Moon, Globe, Check } from "lucide-react";
+import { MoreVertical, Sun, Moon, Globe, Check, LogOut, LogIn, User } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 // Vector Flag for Thailand (Trairanga)
 function ThaiFlag({ className = "w-4 h-3" }: { className?: string }) {
@@ -34,6 +35,7 @@ export default function SettingsKebab() {
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const { data: session } = useSession();
   const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
@@ -104,12 +106,23 @@ export default function SettingsKebab() {
         aria-expanded={isOpen}
         aria-haspopup="true"
         title={t("settings")}
-        className={`w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer transition-all shadow-sm active:scale-95 select-none ${
+        className={`h-9 px-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all shadow-sm active:scale-95 select-none ${
           isOpen
             ? "bg-accent text-white border-accent shadow-accent scale-105"
             : "bg-bg-card hover:bg-bg-surface border-border text-text-secondary hover:text-accent"
         }`}
       >
+        {session?.user?.image ? (
+          <img
+            src={session.user.image}
+            alt={session.user.name || "User"}
+            className="w-5 h-5 rounded-full object-cover border border-accent/40"
+          />
+        ) : session?.user ? (
+          <div className="w-5 h-5 rounded-full bg-accent/20 text-accent font-bold text-[10px] flex items-center justify-center">
+            {session.user.name ? session.user.name.charAt(0).toUpperCase() : "U"}
+          </div>
+        ) : null}
         <MoreVertical className="w-4 h-4 pointer-events-none" />
       </button>
 
@@ -118,7 +131,7 @@ export default function SettingsKebab() {
         <div
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 mt-2 w-64 rounded-2xl bg-bg-card border border-border p-3.5 shadow-earth z-[100] animate-in fade-in zoom-in-95 duration-150 space-y-3"
+          className="absolute right-0 mt-2 w-72 rounded-2xl bg-bg-card border border-border p-3.5 shadow-earth z-[100] animate-in fade-in zoom-in-95 duration-150 space-y-3"
           role="menu"
         >
           {/* Header */}
@@ -131,6 +144,51 @@ export default function SettingsKebab() {
               <span>{language.toUpperCase()} · {theme === "dark" ? "DARK" : "LIGHT"}</span>
             </span>
           </div>
+
+          {/* User Profile Section */}
+          {session?.user ? (
+            <div className="p-2.5 rounded-xl bg-bg-surface border border-border/60 space-y-2">
+              <div className="flex items-center gap-2.5">
+                {session.user.image ? (
+                  <img
+                    src={session.user.image}
+                    alt={session.user.name || "User"}
+                    className="w-8 h-8 rounded-full object-cover border border-accent/50 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-accent/20 text-accent font-bold text-xs flex items-center justify-center flex-shrink-0">
+                    {session.user.name ? session.user.name.charAt(0).toUpperCase() : "U"}
+                  </div>
+                )}
+                <div className="overflow-hidden">
+                  <div className="text-xs font-bold text-text-primary truncate">
+                    {session.user.name || "Mark"}
+                  </div>
+                  <div className="text-[11px] text-text-muted truncate">
+                    {session.user.email}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="w-full mt-1.5 py-1.5 px-3 rounded-lg bg-bg-card hover:bg-red-950/30 text-text-muted hover:text-red-400 border border-border/60 hover:border-red-800/40 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{t("signOut")}</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => signIn("google", { callbackUrl: "/trips" })}
+              className="w-full py-2 px-3 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-accent"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>{t("signIn")}</span>
+            </button>
+          )}
 
           {/* Theme Section */}
           <div className="space-y-1.5">

@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getAuthSession } from "@/lib/auth";
 
 // ─────────────────────────────────────────────
 // TRIP CRUD
@@ -17,8 +18,12 @@ export async function createTrip(data: {
   baseCurrency?: string;
   exchangeRate?: number;
 }) {
+  const session = await getAuthSession();
+  const userId = (session?.user as any)?.id || null;
+
   const trip = await db.trip.create({
     data: {
+      userId,
       title: data.title,
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
@@ -41,6 +46,17 @@ export async function updateTrip(tripId: string, data: {
   baseCurrency?: string;
   exchangeRate?: number;
 }) {
+  const session = await getAuthSession();
+  const userId = (session?.user as any)?.id;
+
+  // Verify ownership if trip has a userId
+  if (userId) {
+    const existing = await db.trip.findUnique({ where: { id: tripId }, select: { userId: true } });
+    if (existing?.userId && existing.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+  }
+
   const updateData: any = {};
   if (data.title !== undefined) updateData.title = data.title;
   if (data.startDate !== undefined) updateData.startDate = new Date(data.startDate);
@@ -81,6 +97,16 @@ export async function deletePass(id: string, tripId: string) {
 }
 
 export async function deleteTrip(tripId: string) {
+  const session = await getAuthSession();
+  const userId = (session?.user as any)?.id;
+
+  if (userId) {
+    const existing = await db.trip.findUnique({ where: { id: tripId }, select: { userId: true } });
+    if (existing?.userId && existing.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+  }
+
   await db.trip.delete({ where: { id: tripId } });
   revalidatePath("/trips");
   redirect("/trips");
