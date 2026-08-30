@@ -184,7 +184,7 @@ export default function LoginPage() {
 
       {/* Footer */}
       <footer className="border-t border-border py-4 text-center text-xs text-text-muted">
-        <span>© 2026 Japan Trip Planner. All rights reserved.</span>
+        <span>© 2026 Japan Trip Planner by Mark no Nihon Tabi. All rights reserved.</span>
       </footer>
     </div>
   );
