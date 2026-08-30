@@ -69,8 +69,8 @@ An interactive, responsive web application for planning Japan travel itineraries
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/markPoramest/japan-trip.git
-cd japan-trip
+git clone https://github.com/markPoramest/japan-trip-planner.git
+cd japan-trip-planner
 ```
 
 ### 2. Install dependencies
