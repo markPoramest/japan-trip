@@ -164,6 +164,7 @@ export const translations = {
     passCostJpy: "Pass Cost",
     validDays: "Days Valid",
     addPass: "Add Pass",
+    optional: "Optional",
     creating: "Creating...",
     createTrip: "Create Trip",
 
@@ -366,6 +367,7 @@ export const translations = {
     passCostJpy: "ราคาพาส (เยน)",
     validDays: "จำนวนวันใช้งาน",
     addPass: "เพิ่มพาส",
+    optional: "ไม่บังคับ",
     creating: "กำลังสร้าง...",
     createTrip: "บันทึกและสร้างทริป",
 
