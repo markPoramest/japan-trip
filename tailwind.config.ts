@@ -79,7 +79,8 @@ const config: Config = {
         "accent": "0 4px 16px rgba(235,94,40,0.35)",
       },
       fontFamily: {
-        sans: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Noto Sans JP", "Roboto", "Helvetica", "Arial", "sans-serif"],
+        sans: ["var(--font-noto-sans-thai)", "var(--font-plus-jakarta)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Noto Sans JP", "Roboto", "Helvetica", "Arial", "sans-serif"],
+        thai: ["var(--font-noto-sans-thai)", "sans-serif"],
       },
     },
   },
