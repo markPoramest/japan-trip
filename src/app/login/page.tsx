@@ -1,17 +1,20 @@
 "use client";
 
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Compass, ShieldCheck, MapPin, Calendar, CreditCard, Layers, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { Compass, ShieldCheck, MapPin, Calendar, CreditCard, Layers, ArrowRight, Loader2, Sparkles, UserCheck } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import SettingsKebab from "@/components/SettingsKebab";
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, language } = useLanguage();
-  const [signingIn, setSigningIn] = useState(false);
+  const [signingIn, setSigningIn] = useState<string | null>(null);
+
+  const authError = searchParams?.get("error");
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -20,8 +23,17 @@ export default function LoginPage() {
   }, [status, router]);
 
   const handleGoogleSignIn = () => {
-    setSigningIn(true);
+    setSigningIn("google");
     signIn("google", { callbackUrl: "/trips" });
+  };
+
+  const handleDemoSignIn = () => {
+    setSigningIn("demo");
+    signIn("demo", {
+      email: "mark@example.com",
+      name: "Mark",
+      callbackUrl: "/trips",
+    });
   };
 
   return (
@@ -99,9 +111,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Right column: Google Sign In Card */}
+        {/* Right column: Sign In Card */}
         <div className="w-full lg:w-[400px] flex-shrink-0" data-aos="fade-left">
-          <div className="bg-bg-card border-2 border-accent/40 rounded-3xl p-8 shadow-earth space-y-6 relative overflow-hidden">
+          <div className="bg-bg-card border-2 border-accent/40 rounded-3xl p-8 shadow-earth space-y-5 relative overflow-hidden">
             <div className="text-center space-y-2">
               <div className="w-14 h-14 rounded-2xl bg-accent-gradient flex items-center justify-center text-3xl mx-auto shadow-accent text-white">
                 🗾
@@ -111,27 +123,69 @@ export default function LoginPage() {
               </h2>
               <p className="text-xs text-text-muted">
                 {language === "th"
-                  ? "เข้าสู่ระบบด้วย Google เพื่อเข้าถึงแผนการเดินทางของคุณ"
-                  : "Sign in with Google to access your private trips"}
+                  ? "เข้าสู่ระบบเพื่อจัดการทริปส่วนตัวของคุณ"
+                  : "Sign in to access your private trip plans"}
               </p>
+            </div>
+
+            {/* Error banner if Google Client ID not yet set */}
+            {authError && (
+              <div className="p-3 rounded-xl bg-accent/15 border border-accent/30 text-xs text-accent space-y-1">
+                <p className="font-bold">
+                  {language === "th" ? "ต้องการ Google Client ID สำหรับ Google Login" : "Google Client ID required for Google OAuth"}
+                </p>
+                <p className="text-[11px] text-text-muted">
+                  {language === "th"
+                    ? "คุณสามารถกดปุ่ม \"เข้าสู่ระบบทันที (Demo)\" ด้านล่างเพื่อทดสอบได้ทันที!"
+                    : "You can click \"1-Click Instant Sign In\" below to test right away without keys!"}
+                </p>
+              </div>
+            )}
+
+            {/* 1-Click Instant Demo Login button */}
+            <button
+              type="button"
+              onClick={handleDemoSignIn}
+              disabled={signingIn !== null || status === "loading"}
+              className="w-full py-3.5 px-5 rounded-2xl bg-accent hover:bg-accent-hover text-white font-bold text-sm shadow-accent transition-all flex items-center justify-center gap-2.5 active:scale-98 cursor-pointer disabled:opacity-75"
+            >
+              {signingIn === "demo" ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>{language === "th" ? "กำลังเข้าสู่ระบบ..." : "Signing in..."}</span>
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-5 h-5" />
+                  <span>{language === "th" ? "เข้าสู่ระบบทันที (Mark)" : "1-Click Sign In (Mark)"}</span>
+                </>
+              )}
+            </button>
+
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-border/80"></div>
+              <span className="flex-shrink mx-3 text-[11px] text-text-muted uppercase font-bold tracking-wider">
+                {language === "th" ? "หรือ" : "Or"}
+              </span>
+              <div className="flex-grow border-t border-border/80"></div>
             </div>
 
             {/* Google Sign in button */}
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              disabled={signingIn || status === "loading"}
-              className="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-neutral-100 text-neutral-900 font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-3 active:scale-98 cursor-pointer disabled:opacity-75"
+              disabled={signingIn !== null || status === "loading"}
+              className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-neutral-100 text-neutral-900 font-bold text-xs shadow-sm hover:shadow transition-all flex items-center justify-center gap-2.5 active:scale-98 cursor-pointer disabled:opacity-75"
             >
-              {signingIn || status === "loading" ? (
+              {signingIn === "google" ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin text-accent" />
-                  <span>{language === "th" ? "กำลังเชื่อมต่อ..." : "Connecting..."}</span>
+                  <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                  <span>{language === "th" ? "กำลังเชื่อมต่อ Google..." : "Connecting Google..."}</span>
                 </>
               ) : (
                 <>
                   {/* Google SVG Logo */}
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -154,7 +208,7 @@ export default function LoginPage() {
               )}
             </button>
 
-            <div className="text-center text-[11px] text-text-faint space-y-1 pt-2 border-t border-border/60">
+            <div className="text-center text-[11px] text-text-faint space-y-1 pt-1 border-t border-border/60">
               <p>{language === "th" ? "ปลอดภัยและเป็นส่วนตัว 100%" : "Private by design · No public sharing"}</p>
             </div>
           </div>
