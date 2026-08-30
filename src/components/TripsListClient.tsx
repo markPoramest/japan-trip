@@ -85,7 +85,11 @@ export default function TripsListClient({ trips }: { trips: TripItem[] }) {
                 {trip.title}
               </h3>
             </div>
-            <div className="text-3xl select-none">🗾</div>
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-10 h-10 rounded-full object-cover shadow-sm border border-accent/40 flex-shrink-0 group-hover:scale-105 transition-transform"
+            />
           </div>
 
           {trip.description && (
@@ -152,9 +156,11 @@ export default function TripsListClient({ trips }: { trips: TripItem[] }) {
       <header className="border-b border-border bg-bg-surface/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-accent-gradient flex items-center justify-center text-lg shadow-accent text-white">
-              🗾
-            </div>
+            <img
+              src="/logo.png"
+              alt="Japan Trip Planner"
+              className="w-10 h-10 rounded-full object-cover shadow-sm border border-accent/40"
+            />
             <div>
               <span className="text-base font-bold text-text-primary">{t("appTitle")}</span>
               <span className="ml-2 text-xs text-text-muted">{t("appSubtitle")}</span>
@@ -176,19 +182,24 @@ export default function TripsListClient({ trips }: { trips: TripItem[] }) {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 space-y-12">
         {/* Hero Section with AOS */}
         <div data-aos="fade-down" className="relative overflow-hidden rounded-3xl bg-card-gradient border border-border p-8 shadow-earth">
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-wider mb-4">
-              <Globe className="w-3.5 h-3.5" /> {t("yourTravelPlans")}
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent text-xs font-bold uppercase tracking-wider mb-4">
+                <Globe className="w-3.5 h-3.5" /> {t("yourTravelPlans")}
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-text-primary tracking-tight leading-tight">
+                {t("heroTitle")}
+              </h1>
+              <p className="text-text-secondary mt-2 max-w-xl">
+                {t("heroSubtitle")}
+              </p>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-text-primary tracking-tight leading-tight">
-              {t("heroTitle")}
-            </h1>
-            <p className="text-text-secondary mt-2 max-w-xl">
-              {t("heroSubtitle")}
-            </p>
+            <img
+              src="/logo.png"
+              alt="Japan Trip Planner Logo"
+              className="w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover shadow-lg border-2 border-accent/40 flex-shrink-0 self-center md:self-auto hover:scale-105 transition-transform"
+            />
           </div>
-          {/* Decorative */}
-          <div className="absolute right-8 top-6 text-7xl opacity-10 select-none pointer-events-none">🗾</div>
         </div>
 
         {/* Global Empty State */}

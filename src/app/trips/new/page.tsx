@@ -138,9 +138,11 @@ export default function NewTripPage() {
           </Link>
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-accent-gradient flex items-center justify-center text-base shadow-accent text-white">
-                🗾
-              </div>
+              <img
+                src="/logo.png"
+                alt="Japan Trip Planner"
+                className="w-8 h-8 rounded-full object-cover shadow-sm border border-accent/40"
+              />
               <span className="text-sm font-bold text-text-primary">{t("planNewTrip")}</span>
             </div>
             <SettingsKebab />

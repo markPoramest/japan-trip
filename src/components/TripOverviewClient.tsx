@@ -98,7 +98,13 @@ export default function TripOverviewClient({ trip }: { trip: TripData }) {
             </span>
           </div>
         </div>
-        <div className="absolute right-6 top-4 text-[80px] opacity-10 select-none pointer-events-none">🗾</div>
+        <div className="absolute right-6 top-6 hidden sm:block">
+          <img
+            src="/logo.png"
+            alt="Japan Trip Planner"
+            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover shadow-lg border-2 border-accent/40 opacity-80 hover:opacity-100 transition-opacity"
+          />
+        </div>
       </div>
 
       {/* Financial Summary with AOS */}

@@ -163,9 +163,11 @@ export default function NavbarClient({
 
           {/* Brand logo & trip title */}
           <Link href={`/trips/${tripId}`} className="flex items-center space-x-2.5 group flex-1 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-accent-gradient flex items-center justify-center text-base shadow-accent group-hover:scale-105 transition-transform flex-shrink-0 text-white">
-              🗾
-            </div>
+            <img
+              src="/logo.png"
+              alt="Japan Trip Planner"
+              className="w-9 h-9 rounded-full object-cover shadow-sm border border-accent/40 group-hover:scale-105 transition-transform flex-shrink-0"
+            />
             <div className="min-w-0">
               <div className="text-sm font-bold text-text-primary group-hover:text-accent transition-colors truncate">
                 {tripTitle}

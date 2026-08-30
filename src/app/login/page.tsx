@@ -33,9 +33,11 @@ export default function LoginPage() {
       <header className="border-b border-border bg-bg-surface/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-accent-gradient flex items-center justify-center text-lg shadow-accent text-white">
-              🗾
-            </div>
+            <img
+              src="/logo.png"
+              alt="Japan Trip Planner"
+              className="w-10 h-10 rounded-full object-cover shadow-sm border border-accent/40"
+            />
             <div>
               <span className="text-base font-bold text-text-primary">{t("appTitle")}</span>
               <span className="ml-2 text-xs text-text-muted">{t("appSubtitle")}</span>
@@ -60,8 +62,8 @@ export default function LoginPage() {
 
           <p className="text-text-secondary text-base sm:text-lg leading-relaxed max-w-xl">
             {language === "th"
-              ? "สร้างแผนการเดินทางส่วนตัว จัดการตารางรายวัน คำนวณบัตร IC Card ตั๋วพาส โรงแรม และส่งออกเอกสาร ตม. ได้ง่ายๆ"
-              : "Organize custom itineraries, track live IC card and transit spend, manage hotel & flight bookings, and export PDF sheets."}
+              ? "สร้างแผนการเดินทางส่วนตัว จัดการตารางรายวัน คำนวณบัตร IC Card ตั๋วพาส โรงแรม และดาวน์โหลดแพลนเที่ยวได้ง่ายๆ"
+              : "Organize itineraries, track live IC card and transit spend, manage hotel & flight bookings, and export PDF sheets."}
           </p>
 
           {/* Privacy highlights */}
@@ -106,9 +108,11 @@ export default function LoginPage() {
         <div className="w-full lg:w-[400px] flex-shrink-0" data-aos="fade-left">
           <div className="bg-bg-card border-2 border-accent/40 rounded-3xl p-8 shadow-earth space-y-6 relative overflow-hidden">
             <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-accent-gradient flex items-center justify-center text-3xl mx-auto shadow-accent text-white">
-                🗾
-              </div>
+              <img
+                src="/logo.png"
+                alt="Japan Trip Planner Logo"
+                className="w-20 h-20 rounded-full object-cover mx-auto shadow-md border-2 border-accent/40"
+              />
               <h2 className="text-2xl font-extrabold text-text-primary">
                 {language === "th" ? "เข้าสู่ระบบ" : "Sign In"}
               </h2>

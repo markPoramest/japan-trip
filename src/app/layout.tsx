@@ -7,8 +7,13 @@ import NavigationProgressBar from "@/components/NavigationProgressBar";
 import AosProvider from "@/components/AosProvider";
 
 export const metadata: Metadata = {
-  title: "Japan Trip Planner - Next.js & SQL",
+  title: "Japan Trip Planner — By Mark no Nihon Tabi",
   description: "Interactive Japan Trip Planner with IC card tracking, daily itineraries, and cost calculator.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 const themeInitScript = `

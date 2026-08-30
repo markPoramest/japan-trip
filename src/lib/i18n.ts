@@ -4,7 +4,7 @@ export const translations = {
   en: {
     // Brand & Header
     appTitle: "Japan Trip Planner",
-    appSubtitle: "Multi-Trip Manager",
+    appSubtitle: "By Mark no Nihon Tabi",
     allTrips: "All Trips",
     planNewTrip: "Plan New Trip",
     addAnotherTrip: "Add Another Trip",
@@ -199,7 +199,7 @@ export const translations = {
   th: {
     // Brand & Header
     appTitle: "แพลนทริปญี่ปุ่น",
-    appSubtitle: "ระบบจัดการทริปท่องเที่ยว",
+    appSubtitle: "By Mark no Nihon Tabi",
     allTrips: "ทริปทั้งหมด",
     planNewTrip: "วางแผนทริปใหม่",
     addAnotherTrip: "เพิ่มทริปใหม่",
