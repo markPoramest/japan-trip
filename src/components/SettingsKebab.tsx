@@ -94,7 +94,7 @@ export default function SettingsKebab() {
 
   return (
     <div className="relative inline-block text-left z-50" ref={menuRef}>
-      {/* Kebab trigger button */}
+      {/* Profile & Settings Trigger button with Person Icon */}
       <button
         type="button"
         onMouseDown={(e) => e.stopPropagation()}
@@ -105,7 +105,7 @@ export default function SettingsKebab() {
         }}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        title={t("settings")}
+        title={session?.user?.name ? `${session.user.name} (${t("settings")})` : t("settings")}
         className={`h-9 px-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition-all shadow-sm active:scale-95 select-none ${
           isOpen
             ? "bg-accent text-white border-accent shadow-accent scale-105"
@@ -122,8 +122,14 @@ export default function SettingsKebab() {
           <div className="w-5 h-5 rounded-full bg-accent/20 text-accent font-bold text-[10px] flex items-center justify-center">
             {session.user.name ? session.user.name.charAt(0).toUpperCase() : "U"}
           </div>
-        ) : null}
-        <MoreVertical className="w-4 h-4 pointer-events-none" />
+        ) : (
+          <User className="w-4 h-4 pointer-events-none" />
+        )}
+        {session?.user?.name && (
+          <span className="text-xs font-bold max-w-[80px] truncate hidden sm:inline">
+            {session.user.name.split(" ")[0]}
+          </span>
+        )}
       </button>
 
       {/* Dropdown Menu */}
@@ -131,7 +137,7 @@ export default function SettingsKebab() {
         <div
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="absolute right-0 mt-2 w-72 rounded-2xl bg-bg-card border border-border p-3.5 shadow-earth z-[100] animate-in fade-in zoom-in-95 duration-150 space-y-3"
+          className="absolute right-0 mt-2 w-72 rounded-2xl bg-bg-card border border-border p-3.5 shadow-2xl z-[999] animate-in fade-in zoom-in-95 duration-150 space-y-3"
           role="menu"
         >
           {/* Header */}

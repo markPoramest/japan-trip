@@ -30,7 +30,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-bg-base flex flex-col justify-between text-text-primary">
       {/* Top bar */}
-      <header className="border-b border-border bg-bg-surface/80 backdrop-blur-md">
+      <header className="border-b border-border bg-bg-surface/80 backdrop-blur-md relative z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img
