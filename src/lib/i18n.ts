@@ -235,7 +235,7 @@ export const translations = {
     overview: "ภาพรวม",
     hotelsAndPasses: "จัดการค่าใช้จ่าย",
     excelMatrix: "ตารางสรุป Excel",
-    days: "กำหนดการ",
+    days: "วัน",
     day: "วันที่",
 
     // Card snapshot on /trips

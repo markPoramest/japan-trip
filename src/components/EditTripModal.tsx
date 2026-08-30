@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { updateTrip } from "@/lib/actions";
-import { X, Calendar, MapPin, AlignLeft, JapaneseYen, Edit3, Sparkles } from "lucide-react";
+import { X, Calendar, MapPin, AlignLeft, JapaneseYen, Edit3 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import DateRangePicker from "@/components/DateRangePicker";
 
 interface EditTripModalProps {
   isOpen: boolean;
@@ -21,7 +22,7 @@ interface EditTripModalProps {
 }
 
 export default function EditTripModal({ isOpen, onClose, trip }: EditTripModalProps) {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [title, setTitle] = useState(trip.title);
   const [description, setDescription] = useState(trip.description || "");
   const [startDate, setStartDate] = useState(trip.startDate.split("T")[0]);
@@ -40,30 +41,6 @@ export default function EditTripModal({ isOpen, onClose, trip }: EditTripModalPr
   }, [isOpen, trip]);
 
   if (!isOpen) return null;
-
-  const isValidRange = startDate && endDate && new Date(endDate + "T00:00:00") >= new Date(startDate + "T00:00:00");
-  const durationDays = isValidRange
-    ? Math.round(
-        (new Date(endDate + "T00:00:00").getTime() - new Date(startDate + "T00:00:00").getTime()) /
-          (1000 * 60 * 60 * 24)
-      ) + 1
-    : 0;
-  const durationNights = Math.max(0, durationDays - 1);
-
-  function handleStartDateChange(newStart: string) {
-    setStartDate(newStart);
-    if (!endDate || new Date(endDate + "T00:00:00") < new Date(newStart + "T00:00:00")) {
-      setEndDate(newStart);
-    }
-  }
-
-  function handleEndDateChange(newEnd: string) {
-    if (startDate && new Date(newEnd + "T00:00:00") < new Date(startDate + "T00:00:00")) {
-      setEndDate(startDate);
-      return;
-    }
-    setEndDate(newEnd);
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -143,61 +120,17 @@ export default function EditTripModal({ isOpen, onClose, trip }: EditTripModalPr
             />
           </div>
 
-          {/* Date range with min constraint */}
-          <div className="space-y-3">
-            <label className={labelClass}>
-              <Calendar className="w-3.5 h-3.5 text-accent/70" /> {t("dateRangeSelected")}
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <span className="block text-[11px] text-text-muted mb-1 font-semibold">{t("startDateRequired")}</span>
-                <input
-                  required
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => handleStartDateChange(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <span className="block text-[11px] text-text-muted mb-1 font-semibold">{t("endDateRequired")}</span>
-                <input
-                  required
-                  type="date"
-                  min={startDate || undefined}
-                  value={endDate}
-                  onChange={(e) => handleEndDateChange(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            {/* Dynamic Duration Badge */}
-            {isValidRange && (
-              <div className="p-3 rounded-2xl bg-accent/10 border border-accent/30 flex items-center justify-between flex-wrap gap-2 text-xs">
-                <div className="flex items-center gap-2 font-bold text-accent">
-                  <Calendar className="w-4 h-4 flex-shrink-0" />
-                  <span>
-                    {durationDays} {t("days")} / {durationNights} {t("nights")}
-                  </span>
-                </div>
-                <span className="text-text-muted font-mono text-[11px]">
-                  {new Date(startDate + "T00:00:00").toLocaleDateString(language === "th" ? "th-TH" : "en-US", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}{" "}
-                  ➔{" "}
-                  {new Date(endDate + "T00:00:00").toLocaleDateString(language === "th" ? "th-TH" : "en-US", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-            )}
+          {/* Google Flights Style Interactive Date Range Picker */}
+          <div>
+            <DateRangePicker
+              label={t("dateRangeSelected")}
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(start, end) => {
+                setStartDate(start);
+                setEndDate(end);
+              }}
+            />
           </div>
 
           {/* Exchange rate */}
@@ -227,7 +160,7 @@ export default function EditTripModal({ isOpen, onClose, trip }: EditTripModalPr
             </button>
             <button
               type="submit"
-              disabled={loading || !isValidRange}
+              disabled={loading || !startDate || !endDate}
               className="px-6 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent transition-all hover:scale-105 disabled:opacity-60 cursor-pointer"
             >
               {loading ? t("creating") : t("saveChanges")}

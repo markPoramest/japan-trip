@@ -6,6 +6,7 @@ import { createTrip, createTripDay, createPass } from "@/lib/actions";
 import { ArrowLeft, PlusCircle, Trash2, Calendar, Globe, MapPin, Train, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import SettingsKebab from "@/components/SettingsKebab";
+import DateRangePicker from "@/components/DateRangePicker";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface DayEntry {
@@ -290,59 +291,18 @@ export default function NewTripPage() {
               />
             </div>
 
-            {/* Date Range Selector with Visual Duration & Min-Constraint */}
-            <div className="space-y-3 pt-2">
-              <label className={labelClass}>{t("dateRangeSelected")}</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="block text-[11px] text-text-muted mb-1 font-semibold">{t("startDateRequired")}</span>
-                  <input
-                    required
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => handleStartDateChange(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <span className="block text-[11px] text-text-muted mb-1 font-semibold">{t("endDateRequired")}</span>
-                  <input
-                    required
-                    type="date"
-                    min={startDate || undefined}
-                    value={endDate}
-                    onChange={(e) => handleEndDateChange(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              {/* Dynamic Range Preview Banner */}
-              {isValidRange && (
-                <div className="p-3.5 rounded-2xl bg-accent/10 border border-accent/30 flex items-center justify-between flex-wrap gap-2 text-xs">
-                  <div className="flex items-center gap-2 font-bold text-accent">
-                    <Calendar className="w-4 h-4 flex-shrink-0" />
-                    <span>
-                      {durationDays} {t("days")} / {durationNights} {t("nights")}
-                    </span>
-                  </div>
-                  <span className="text-text-muted font-mono text-[11px]">
-                    {new Date(startDate + "T00:00:00").toLocaleDateString(language === "th" ? "th-TH" : "en-US", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}{" "}
-                    ➔{" "}
-                    {new Date(endDate + "T00:00:00").toLocaleDateString(language === "th" ? "th-TH" : "en-US", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </span>
-                </div>
-              )}
+            {/* Google Flights Style Interactive Date Range Picker */}
+            <div className="pt-2">
+              <DateRangePicker
+                label={t("dateRangeSelected")}
+                startDate={startDate}
+                endDate={endDate}
+                onChange={(start, end) => {
+                  setStartDate(start);
+                  setEndDate(end);
+                  syncDaysFromRange(start, end);
+                }}
+              />
             </div>
           </div>
 
